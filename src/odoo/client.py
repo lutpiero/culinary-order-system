@@ -162,7 +162,7 @@ class OdooClient:
         domain = [("name", "=", name)]
         if phone:
             domain = ["|", ("name", "=", name), ("phone", "=", phone)]
-        result = self._call("res.partner", "search", [[domain], {"limit": 1}])
+        result = self._call("res.partner", "search", [domain], {"limit": 1})
         if result:
             return result[0]
         vals: dict[str, Any] = {"name": name}
