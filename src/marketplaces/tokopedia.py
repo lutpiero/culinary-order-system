@@ -285,56 +285,92 @@ class TokopediaAdapter(BaseMarketplace):
 
     async def get_orders(self, status: str = "new") -> list[MarketOrder]:
         status_map = {
-            "new": "new",
-            "processed": "processed",
-            "shipped": "shipped",
-            "completed": "completed",
-            "cancelled": "cancelled",
+            "new": "101",
+            "processed": "101",
+            "shipped": "401",
+            "completed": "601",
+            "cancelled": "701",
         }
-        status_param = status_map.get(status, "new")
+        search_tab = status_map.get(status, "101")
         page = await self._get_page()
-        await page.goto(f"{self.config.seller_center_url}/order?status={status_param}")
-        await asyncio.sleep(8)
+        await page.goto(f"{self.config.seller_center_url}/order?shop_region=ID&status={status}")
+        await asyncio.sleep(12)
         if await self._check_login_needed(page):
             logger.error("[tokopedia] Session expired.")
             return []
 
         orders: list[MarketOrder] = []
         try:
-            raw = await page.evaluate("""() => {
-                const rows = document.querySelectorAll('tr, [class*="order-row"], [class*="order-item"], [class*="OrderCard"]');
-                const results = [];
-                for (const row of rows) {
+            raw = await page.evaluate(
+                """async (args) => {
                     try {
-                        let orderId = '';
-                        const idEl = row.querySelector('[class*="order-id"], [class*="orderId"], [class*="order-no"]');
-                        if (idEl) {
-                            orderId = idEl.textContent.replace(/[^0-9]/g, '');
-                        }
+                        const r = await fetch("/api/fulfillment/order/list", {
+                            method: "POST",
+                            headers: {"Content-Type": "application/json"},
+                            body: JSON.stringify({
+                                search_condition: {
+                                    condition_list: {
+                                        search_tab: {value: [args.tab]},
+                                    },
+                                },
+                                sort_info: "11",
+                                page_number: 1,
+                                page_size: 50,
+                            }),
+                        });
+                        return await r.json();
+                    } catch (e) {
+                        return {code: -1, message: e.message};
+                    }
+                }""",
+                {"tab": search_tab},
+            )
 
-                        const buyerEl = row.querySelector('[class*="buyer"], [class*="username"], [class*="customer"]');
-                        const buyer = buyerEl ? buyerEl.textContent.trim() : '';
+            if raw.get("code") != 0:
+                logger.error(f"[tokopedia] Order API error: {raw.get('message', raw.get('msg', 'unknown'))}")
+                return []
 
-                        const amountEl = row.querySelector('[class*="total"], [class*="amount"], [class*="price"]');
-                        const amount = amountEl ? amountEl.textContent.trim() : '';
+            for main_order in raw.get("data", {}).get("main_orders", []):
+                try:
+                    order_id = main_order.get("main_order_id", "")
 
-                        if (orderId) {
-                            results.push({ orderId, buyer, amount });
-                        }
-                    } catch(e) {}
-                }
-                return results;
-            }""")
+                    trade = main_order.get("trade_order_module", {})
+                    created_at = trade.get("create_time", "")
 
-            for item in raw:
-                orders.append(
-                    MarketOrder(
-                        order_id=item["orderId"],
-                        buyer_name=item["buyer"],
-                        total_amount=self._parse_price(item["amount"]),
-                        status=status,
+                    items = []
+                    for sku in main_order.get("sku_module", []):
+                        sku_price = sku.get("sku_unit_price", {})
+                        unit_price = float(sku_price.get("price_val", "0") or "0")
+                        qty = sku.get("quantity", 1)
+                        items.append({
+                            "marketplace_product_id": str(sku.get("product_id", "")),
+                            "marketplace_sku": sku.get("seller_sku_name", ""),
+                            "product_name": sku.get("product_name", ""),
+                            "qty": qty,
+                            "price": unit_price,
+                            "sku_id": str(sku.get("sku_id", "")),
+                        })
+
+                    total_amount = sum(i["price"] * i["qty"] for i in items)
+                    shipping = float(trade.get("shipping_fee", {}).get("price_val", "0") or "0")
+                    total_amount += shipping
+
+                    buyer_name = f"Tokopedia Buyer ({order_id})"
+
+                    orders.append(
+                        MarketOrder(
+                            order_id=order_id,
+                            buyer_name=buyer_name,
+                            items=items,
+                            total_amount=total_amount,
+                            status=status,
+                            created_at=created_at,
+                            raw=main_order,
+                        )
                     )
-                )
+                except Exception as e:
+                    logger.warning(f"[tokopedia] Failed to parse order: {e}")
+
             logger.info(f"[tokopedia] Found {len(orders)} orders (status={status})")
         except Exception as e:
             logger.error(f"[tokopedia] Failed to load orders: {e}")
