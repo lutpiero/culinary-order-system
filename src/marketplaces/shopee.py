@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import re
 
-import httpx
 from loguru import logger
 from playwright.async_api import Page
 
@@ -43,17 +41,6 @@ class ShopeeAdapter(BaseMarketplace):
         if "login" in url or "passport" in url or "sso" in url:
             return True
         return False
-
-    def _load_cookies(self) -> dict[str, str]:
-        session_file = self._session_path()
-        if not session_file.exists():
-            return {}
-        state = json.loads(session_file.read_text())
-        return {
-            c["name"]: c["value"]
-            for c in state.get("cookies", [])
-            if "shopee" in c.get("domain", "")
-        }
 
     async def get_products(self) -> list[MarketProduct]:
         page = await self._get_page()
@@ -143,48 +130,52 @@ class ShopeeAdapter(BaseMarketplace):
     async def _api_update(
         self, product_id: str, field: str, value: float | int
     ) -> bool:
-        cookies = self._load_cookies()
-        if not cookies:
-            logger.error("[shopee] No cookies loaded from session file")
-            return False
-
         model_id = self._product_cache.get(product_id, {}).get("model_id", 0)
         if not model_id:
             logger.error(f"[shopee] No model_id cached for product {product_id}")
             return False
 
-        headers = {
-            "Content-Type": "application/json",
-            "caller-source": "local_pc",
-            "sc-fe-ver": "21.155649",
-            "locale": "id",
-            "accept": "application/json, text/plain, */*",
-            "referer": f"{self.config.seller_center_url}/portal/product/list/all",
-            "user-agent": (
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36"
-            ),
-        }
-
-        body = {
-            "product_id": int(product_id),
-            "model_id": model_id,
-            field: value,
-        }
-
+        page = await self._get_page()
         try:
-            with httpx.Client(cookies=cookies, headers=headers, timeout=15) as client:
-                resp = client.post(
-                    "https://seller.shopee.co.id/api/v3/product/update_product_info_for_quick_edit",
-                    json=body,
-                )
-                data = resp.json()
-                if data.get("code") == 0:
-                    return True
-                logger.error(
-                    f"[shopee] API error for {product_id}: code={data.get('code')} msg={data.get('msg')}"
-                )
-                return False
+            result = await page.evaluate(
+                """async (args) => {
+                    try {
+                        const r = await fetch(
+                            "/api/v3/product/update_product_info_for_quick_edit",
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "caller-source": "local_pc",
+                                    "sc-fe-ver": "21.155649",
+                                    "locale": "id",
+                                },
+                                body: JSON.stringify({
+                                    product_id: args.pid,
+                                    model_id: args.mid,
+                                    [args.field]: args.value,
+                                }),
+                            }
+                        );
+                        return await r.json();
+                    } catch (e) {
+                        return {code: -1, message: e.message};
+                    }
+                }""",
+                {
+                    "pid": int(product_id),
+                    "mid": int(model_id),
+                    "field": field,
+                    "value": value,
+                },
+            )
+            if result.get("code") == 0:
+                return True
+            logger.error(
+                f"[shopee] API error for {product_id}: "
+                f"code={result.get('code')} msg={result.get('message')}"
+            )
+            return False
         except Exception as e:
             logger.error(f"[shopee] API request failed for {product_id}: {e}")
             return False
