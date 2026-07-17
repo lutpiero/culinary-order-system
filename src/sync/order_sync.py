@@ -5,6 +5,7 @@ import json
 
 from loguru import logger
 
+from src.config import get_config
 from src.marketplaces.base import BaseMarketplace, MarketOrder
 from src.models.database import get_db, get_order_cache, upsert_order_cache
 from src.odoo.client import OdooClient
@@ -49,6 +50,20 @@ async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarket
             )
 
             odoo_order_id = await _create_odoo_order(odoo, marketplace.name, order)
+
+            cfg = get_config()
+            if cfg.sync.auto_confirm_orders:
+                try:
+                    odoo.confirm_sale_order(odoo_order_id)
+                    logger.info(
+                        f"[{marketplace.name}] Order {order.order_id} confirmed — "
+                        "stock.picking created, inventory updated"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"[{marketplace.name}] Failed to confirm order {order.order_id}: {e}. "
+                        "Order created as draft — stock NOT deducted."
+                    )
 
             await upsert_order_cache(
                 marketplace=marketplace.name,

@@ -32,6 +32,7 @@ class SyncConfig(BaseModel):
     orders: bool = True
     products: bool = True
     conflict_resolution: str = "odoo_wins"
+    auto_confirm_orders: bool = True
     min_price: float = 1000.0
     max_stock: int = 99999
     min_stock_floor: int = 0

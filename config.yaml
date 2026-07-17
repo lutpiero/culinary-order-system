@@ -26,6 +26,7 @@ sync:
   orders: true
   products: true
   conflict_resolution: "odoo_wins"
+  auto_confirm_orders: true
   min_price: 1000
   max_stock: 99999
   min_stock_floor: 0

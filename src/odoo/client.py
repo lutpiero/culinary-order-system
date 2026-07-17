@@ -136,12 +136,14 @@ class OdooClient:
         return self._call("sale.order", "search_read", [domain], {"fields": fields, "limit": 200})
 
     def create_sale_order(self, partner_id: int, lines: list[dict], ref: str | None = None) -> int:
+        uom_id = self._get_default_uom()
         vals: dict[str, Any] = {
             "partner_id": partner_id,
             "order_line": [
                 (0, 0, {
                     "product_id": line["product_id"],
                     "product_uom_qty": line["qty"],
+                    "product_uom": uom_id,
                     "price_unit": line["price"],
                 })
                 for line in lines
@@ -150,6 +152,11 @@ class OdooClient:
         if ref:
             vals["client_order_ref"] = ref
         return self._call("sale.order", "create", [vals])
+
+    def confirm_sale_order(self, order_id: int) -> bool:
+        self._call("sale.order", "action_confirm", [[order_id]])
+        logger.info(f"Odoo sale.order#{order_id} confirmed — stock.picking will be created")
+        return True
 
     def get_or_create_partner(self, name: str, phone: str | None = None) -> int:
         domain = [("name", "=", name)]
@@ -164,6 +171,12 @@ class OdooClient:
         return self._call("res.partner", "create", [vals])
 
     # ── Internal ──
+
+    def _get_default_uom(self) -> int:
+        result = self._call("uom.uom", "search", [[["name", "=", "Units"]]], {"limit": 1})
+        if not result:
+            raise ValueError("UoM 'Units' not found in Odoo")
+        return result[0]
 
     def _get_location_id(self, complete_name: str) -> int:
         result = self._call(
