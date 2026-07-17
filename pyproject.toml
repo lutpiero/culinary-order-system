@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "marketplace-integrator"
+version = "0.1.0"
+description = "Sync Odoo inventory with Shopee & Tokopedia via browser automation"
+requires-python = ">=3.12"
+dependencies = [
+    "playwright>=1.40",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "fastapi>=0.104",
+    "uvicorn>=0.24",
+    "aiosqlite>=0.19",
+    "pydantic>=2.5",
+    "loguru>=0.7",
+    "apscheduler>=3.10",
+    "httpx>=0.25",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1",
+    "pytest>=7.4",
+    "pytest-asyncio>=0.23",
+]
+
+[project.scripts]
+marketplace-sync = "main:cli"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/marketplaces/*.py" = ["E501"]
+"src/models/*.py" = ["E501"]
+"src/odoo/*.py" = ["E501"]
+"src/sync/*.py" = ["E501", "E741"]

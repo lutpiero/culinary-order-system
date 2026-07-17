@@ -1,0 +1,40 @@
+odoo:
+  url: "http://10.5.51.30:8069"
+  db: "geraihifana"
+  username: "lutpiero@gmail.com"
+  password: "${ODOO_PASSWORD}"
+  stock_location: "WH/Stock"
+
+marketplaces:
+  shopee:
+    enabled: true
+    seller_center_url: "https://seller.shopee.co.id"
+    session_file: "sessions/shopee_state.json"
+    sync_interval_minutes: 10
+    request_delay_seconds: 2
+  tokopedia:
+    enabled: true
+    seller_center_url: "https://seller-id.tokopedia.com"
+    session_file: "sessions/tokopedia_state.json"
+    sync_interval_minutes: 10
+    request_delay_seconds: 3
+
+sync:
+  dry_run: true
+  stock: true
+  price: true
+  orders: true
+  products: true
+  conflict_resolution: "odoo_wins"
+  min_price: 1000
+  max_stock: 99999
+  min_stock_floor: 0
+  price_change_threshold: 500
+  stock_change_threshold: 1
+  skip_stock_zero: true
+  max_retries: 3
+
+server:
+  host: "127.0.0.1"
+  port: 8100
+  api_key: ""
