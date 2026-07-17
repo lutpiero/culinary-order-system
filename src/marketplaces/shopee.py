@@ -15,6 +15,30 @@ class ShopeeAdapter(BaseMarketplace):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._product_cache: dict[str, dict] = {}
+        self._sc_fe_session: str = ""
+
+    async def _ensure_browser(self, headless: bool = True):
+        ctx = await super()._ensure_browser(headless=headless)
+        if not hasattr(self, "_ua_overridden"):
+            self._ua_overridden = True
+            pages = ctx.pages
+            if pages:
+                page = pages[0]
+            else:
+                page = await ctx.new_page()
+            try:
+                cdp = await ctx.new_cdp_session(page)
+                await cdp.send(
+                    "Network.setUserAgentOverride",
+                    {
+                        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                        "(KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36",
+                    },
+                )
+                logger.info("[shopee] UA override applied (HeadlessChrome hidden)")
+            except Exception as e:
+                logger.warning(f"[shopee] UA override failed: {e}")
+        return ctx
 
     async def login_interactive(self) -> bool:
         self._save_on_close = False
@@ -59,6 +83,7 @@ class ShopeeAdapter(BaseMarketplace):
                     )
                     self._product_cache[pid] = {
                         "model_id": default_model.get("id", 0) if default_model else 0,
+                        "tier_index": default_model.get("tier_index", [0]),
                         "stock": p.get("stock_detail", {}).get("total_available_stock", 0),
                         "price": float(
                             p.get("price_detail", {}).get("selling_price_min", "0")
@@ -67,12 +92,20 @@ class ShopeeAdapter(BaseMarketplace):
             except Exception:
                 pass
 
+        def _on_request(req):
+            if "search_product_list" in req.url:
+                hdrs = req.headers
+                if "sc-fe-session" in hdrs:
+                    self._sc_fe_session = hdrs["sc-fe-session"]
+
         page.on("response", _on_response)
+        page.on("request", _on_request)
         await page.goto(
             f"{self.config.seller_center_url}/portal/product/list/all?operationSortBy=recommend_v2"
         )
         await asyncio.sleep(10)
         page.remove_listener("response", _on_response)
+        page.remove_listener("request", _on_request)
 
         if await self._check_login_needed(page):
             logger.error("[shopee] Session expired. Run 'login shopee' to re-authenticate.")
@@ -127,13 +160,15 @@ class ShopeeAdapter(BaseMarketplace):
 
         return products
 
-    async def _api_update(
-        self, product_id: str, field: str, value: float | int
-    ) -> bool:
-        model_id = self._product_cache.get(product_id, {}).get("model_id", 0)
+    async def _update_product_info(self, product_id: str, body_patch: dict) -> bool:
+        cache = self._product_cache.get(product_id, {})
+        model_id = cache.get("model_id", 0)
+        tier_index = cache.get("tier_index", [0])
         if not model_id:
             logger.error(f"[shopee] No model_id cached for product {product_id}")
             return False
+
+        model_data = {"id": model_id, "tier_index": tier_index, **body_patch}
 
         page = await self._get_page()
         try:
@@ -141,19 +176,22 @@ class ShopeeAdapter(BaseMarketplace):
                 """async (args) => {
                     try {
                         const r = await fetch(
-                            "/api/v3/product/update_product_info_for_quick_edit",
+                            "/api/v3/product/update_product_info",
                             {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
                                     "caller-source": "local_pc",
-                                    "sc-fe-ver": "21.155649",
+                                    "sc-fe-ver": "21.155697",
+                                    "sc-fe-session": args.session,
                                     "locale": "id",
                                 },
                                 body: JSON.stringify({
                                     product_id: args.pid,
-                                    model_id: args.mid,
-                                    [args.field]: args.value,
+                                    product_info: {
+                                        model_list: [args.model],
+                                    },
+                                    is_draft: false,
                                 }),
                             }
                         );
@@ -164,9 +202,8 @@ class ShopeeAdapter(BaseMarketplace):
                 }""",
                 {
                     "pid": int(product_id),
-                    "mid": int(model_id),
-                    "field": field,
-                    "value": value,
+                    "model": model_data,
+                    "session": self._sc_fe_session,
                 },
             )
             if result.get("code") == 0:
@@ -187,7 +224,10 @@ class ShopeeAdapter(BaseMarketplace):
             logger.error("[shopee] Product cache empty. Run get_products() first.")
             return False
 
-        result = await self._api_update(marketplace_product_id, "stock", qty)
+        result = await self._update_product_info(
+            marketplace_product_id,
+            {"stock_setting_list": [{"location_id": "IDZ", "sellable_stock": qty}]},
+        )
         if result:
             logger.success(
                 f"[shopee] Stock updated for {marketplace_product_id}: {qty}"
@@ -201,7 +241,11 @@ class ShopeeAdapter(BaseMarketplace):
             logger.error("[shopee] Product cache empty. Run get_products() first.")
             return False
 
-        result = await self._api_update(marketplace_product_id, "price", price)
+        price_str = f"{price:.2f}"
+        result = await self._update_product_info(
+            marketplace_product_id,
+            {"price": price_str},
+        )
         if result:
             logger.success(
                 f"[shopee] Price updated for {marketplace_product_id}: Rp{price:,.0f}"
