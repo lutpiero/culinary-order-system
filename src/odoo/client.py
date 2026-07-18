@@ -135,7 +135,7 @@ class OdooClient:
             ]
         return self._call("sale.order", "search_read", [domain], {"fields": fields, "limit": 200})
 
-    def create_sale_order(self, partner_id: int, lines: list[dict], ref: str | None = None) -> int:
+    def create_sale_order(self, partner_id: int, lines: list[dict], ref: str | None = None, date_order: str | None = None) -> int:
         uom_id = self._get_default_uom()
         vals: dict[str, Any] = {
             "partner_id": partner_id,
@@ -151,6 +151,8 @@ class OdooClient:
         }
         if ref:
             vals["client_order_ref"] = ref
+        if date_order:
+            vals["date_order"] = date_order
         return self._call("sale.order", "create", [vals])
 
     def confirm_sale_order(self, order_id: int) -> bool:

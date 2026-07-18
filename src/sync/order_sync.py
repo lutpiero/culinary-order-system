@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from datetime import UTC, datetime
 
 from loguru import logger
 
@@ -145,4 +146,30 @@ async def _create_odoo_order(odoo: OdooClient, marketplace_name: str, order: Mar
         )
 
     ref = f"[{marketplace_name.upper()}] {order.order_id}"
-    return odoo.create_sale_order(partner_id, lines, ref=ref)
+    date_order = _parse_order_date(marketplace_name, order)
+    return odoo.create_sale_order(partner_id, lines, ref=ref, date_order=date_order)
+
+
+def _parse_order_date(marketplace_name: str, order: MarketOrder) -> str | None:
+    try:
+        if marketplace_name == "tokopedia":
+            ts = order.created_at
+            if ts and ts.isdigit():
+                return datetime.fromtimestamp(int(ts), tz=UTC).strftime("%Y-%m-%d")
+        elif marketplace_name == "shopee":
+            sn = ""
+            polo = order.raw.get("package_level_order_card")
+            oc = order.raw.get("order_card")
+            if polo:
+                sn = polo.get("card_header", {}).get("order_sn", "")
+            elif oc:
+                sn = oc.get("card_header", {}).get("order_sn", "")
+            if sn and len(sn) >= 6 and sn[:2].isdigit():
+                yy = int(sn[:2])
+                mm = int(sn[2:4])
+                dd = int(sn[4:6])
+                year = 2000 + yy
+                return f"{year}-{mm:02d}-{dd:02d}"
+    except Exception:
+        pass
+    return None
