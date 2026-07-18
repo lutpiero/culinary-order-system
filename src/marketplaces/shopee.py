@@ -18,16 +18,14 @@ class ShopeeAdapter(BaseMarketplace):
         self._sc_fe_session: str = ""
 
     async def _ensure_browser(self, headless: bool = True):
-        ctx = await super()._ensure_browser(headless=headless)
-        if not hasattr(self, "_ua_overridden"):
-            self._ua_overridden = True
-            pages = ctx.pages
-            if pages:
-                page = pages[0]
-            else:
-                page = await ctx.new_page()
+        return await super()._ensure_browser(headless=headless)
+
+    async def _get_page(self, headless: bool = True):
+        page = await super()._get_page(headless=headless)
+        if not getattr(self, "_ua_applied_to_page", False):
+            self._ua_applied_to_page = True
             try:
-                cdp = await ctx.new_cdp_session(page)
+                cdp = await self._context.new_cdp_session(page)
                 await cdp.send(
                     "Network.setUserAgentOverride",
                     {
@@ -35,10 +33,10 @@ class ShopeeAdapter(BaseMarketplace):
                         "(KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36",
                     },
                 )
-                logger.info("[shopee] UA override applied (HeadlessChrome hidden)")
+                logger.info("[shopee] UA override applied to page (HeadlessChrome hidden)")
             except Exception as e:
                 logger.warning(f"[shopee] UA override failed: {e}")
-        return ctx
+        return page
 
     async def login_interactive(self) -> bool:
         self._save_on_close = False
@@ -253,59 +251,111 @@ class ShopeeAdapter(BaseMarketplace):
         return result
 
     async def get_orders(self, status: str = "new") -> list[MarketOrder]:
-        status_map = {
+        status_url = {
             "new": "3",
             "shipped": "5",
             "completed": "6",
             "cancelled": "4",
         }
-        status_code = status_map.get(status, "3")
+        status_code = status_url.get(status, "3")
         page = await self._get_page()
-        await page.goto(
-            f"{self.config.seller_center_url}/portal/sale?status={status_code}"
-        )
-        await asyncio.sleep(8)
+
+        raw_card_bodies: list[dict] = []
+
+        async def _intercept(route):
+            resp = await route.fetch()
+            body = await resp.json()
+            raw_card_bodies.append(body)
+            await route.fulfill(response=resp)
+
+        await page.route("**/api/v3/order/get_order_list_card_list**", _intercept)
+
+        await page.goto(f"{self.config.seller_center_url}/portal/sale/order?status={status_code}", timeout=25000)
+        await asyncio.sleep(25)
+
+        await page.unroute("**/api/v3/order/get_order_list_card_list**")
+
         if await self._check_login_needed(page):
             logger.error("[shopee] Session expired.")
             return []
 
         orders: list[MarketOrder] = []
         try:
-            raw = await page.evaluate("""() => {
-                const rows = document.querySelectorAll('.eds-table__row');
-                const results = [];
-                for (const row of rows) {
-                    try {
-                        const cells = row.querySelectorAll('td');
-                        let orderId = '', buyer = '', amount = '';
-                        for (const cell of cells) {
-                            const text = cell.textContent.trim();
-                            if (/^\\d{4,}$/.test(text) && !orderId) {
-                                orderId = text;
-                            }
-                            if (text.includes('Rp') && !amount) {
-                                amount = text;
-                            }
-                        }
-                        const buyerEl = row.querySelector('[class*="buyer"], [class*="username"]');
-                        buyer = buyerEl ? buyerEl.textContent.trim() : '';
-                        if (orderId) {
-                            results.push({ orderId, buyer, amount });
-                        }
-                    } catch(e) {}
-                }
-                return results;
-            }""")
+            card_data: dict[str, dict] = {}
+            for body in raw_card_bodies:
+                if isinstance(body, dict):
+                    for c in body.get("data", {}).get("card_list", []):
+                        polo = c.get("package_level_order_card")
+                        oc = c.get("order_card")
+                        ext = polo.get("order_ext_info", {}) if polo else (oc.get("order_ext_info", {}) if oc else {})
+                        oid = str(ext.get("order_id", ""))
+                        if oid:
+                            card_data[oid] = c
 
-            for item in raw:
-                orders.append(
-                    MarketOrder(
-                        order_id=item["orderId"],
-                        buyer_name=item["buyer"],
-                        total_amount=self._parse_price(item["amount"]),
-                        status=status,
+            for card in card_data.values():
+                try:
+                    polo = card.get("package_level_order_card")
+                    oc = card.get("order_card")
+
+                    if polo:
+                        header = polo.get("card_header", {})
+                        ext = polo.get("order_ext_info", {})
+                        items = []
+                        for pkg in polo.get("package_list", []):
+                            for group in pkg.get("item_info_group", {}).get("item_info_list", []):
+                                for item in group.get("item_list", []):
+                                    inner = item.get("inner_item_ext_info", {})
+                                    items.append({
+                                        "marketplace_product_id": str(inner.get("item_id", "")),
+                                        "marketplace_sku": "",
+                                        "product_name": item.get("name", ""),
+                                        "qty": item.get("amount", 1),
+                                        "price": 0.0,
+                                        "model_id": inner.get("model_id", 0),
+                                    })
+                        pay_info = polo.get("package_list", [{}])[0].get("payment_info", {}) if polo.get("package_list") else {}
+                    elif oc:
+                        header = oc.get("card_header", {})
+                        ext = oc.get("order_ext_info", {})
+                        items = []
+                        for group in oc.get("item_info_group", {}).get("item_info_list", []):
+                            for item in group.get("item_list", []):
+                                inner = item.get("inner_item_ext_info", {})
+                                items.append({
+                                    "marketplace_product_id": str(inner.get("item_id", "")),
+                                    "marketplace_sku": "",
+                                    "product_name": item.get("name", ""),
+                                    "qty": item.get("amount", 1),
+                                    "price": 0.0,
+                                    "model_id": inner.get("model_id", 0),
+                                })
+                        pay_info = oc.get("payment_info", {})
+                    else:
+                        continue
+
+                    order_id = str(ext.get("order_id", ""))
+                    buyer_name = header.get("buyer_info", {}).get("username", "")
+                    raw_price = pay_info.get("total_price", 0)
+                    total_amount = raw_price / 100000 if raw_price > 100000 else float(raw_price) if raw_price else 0.0
+
+                    if items and total_amount > 0:
+                        total_qty = sum(i["qty"] for i in items)
+                        for it in items:
+                            it["price"] = total_amount / total_qty if total_qty else 0
+
+                    orders.append(
+                        MarketOrder(
+                            order_id=order_id,
+                            buyer_name=buyer_name,
+                            items=items,
+                            total_amount=total_amount,
+                            status=status,
+                            raw=card,
+                        )
                     )
-                )
+                except Exception as e:
+                    logger.warning(f"[shopee] Failed to parse order card: {e}")
+
             logger.info(f"[shopee] Found {len(orders)} orders (status={status})")
         except Exception as e:
             logger.error(f"[shopee] Failed to load orders: {e}")
