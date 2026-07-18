@@ -160,6 +160,16 @@ class OdooClient:
         logger.info(f"Odoo sale.order#{order_id} confirmed — stock.picking will be created")
         return True
 
+    def create_invoice_from_sale_order(self, sale_order_id: int) -> int | None:
+        invoice_ids = self._call("sale.order", "action_invoice_create", [[sale_order_id], {"final": True}])
+        if invoice_ids:
+            invoice_id = invoice_ids[0]
+            self._call("account.move", "action_post", [[invoice_id]])
+            logger.info(f"Odoo account.move#{invoice_id} created and posted from sale.order#{sale_order_id}")
+            return invoice_id
+        logger.warning(f"No invoice created from sale.order#{sale_order_id}")
+        return None
+
     def get_or_create_partner(self, name: str, phone: str | None = None) -> int:
         domain = [("name", "=", name)]
         if phone:

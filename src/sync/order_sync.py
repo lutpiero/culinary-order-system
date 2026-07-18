@@ -58,12 +58,25 @@ async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarket
                     odoo.confirm_sale_order(odoo_order_id)
                     logger.info(
                         f"[{marketplace.name}] Order {order.order_id} confirmed — "
-                        "stock.picking created, inventory updated"
+                        "stock.picking created"
                     )
                 except Exception as e:
                     logger.error(
                         f"[{marketplace.name}] Failed to confirm order {order.order_id}: {e}. "
                         "Order created as draft — stock NOT deducted."
+                    )
+
+                try:
+                    invoice_id = odoo.create_invoice_from_sale_order(odoo_order_id)
+                    if invoice_id:
+                        logger.info(
+                            f"[{marketplace.name}] Order {order.order_id} invoiced — "
+                            f"account.move#{invoice_id}"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"[{marketplace.name}] Failed to invoice order {order.order_id}: {e}. "
+                        "Sale order confirmed but invoice NOT created."
                     )
 
             await upsert_order_cache(
