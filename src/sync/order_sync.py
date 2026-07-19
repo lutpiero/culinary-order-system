@@ -52,6 +52,7 @@ async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarket
 
             odoo_order_id = await _create_odoo_order(odoo, marketplace.name, order)
 
+            invoice_id = None
             cfg = get_config()
             if cfg.sync.auto_confirm_orders:
                 try:
@@ -78,6 +79,8 @@ async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarket
                         f"[{marketplace.name}] Failed to invoice order {order.order_id}: {e}. "
                         "Sale order confirmed but invoice NOT created."
                     )
+
+            _export_order_json(marketplace.name, order, odoo_order_id, invoice_id, odoo)
 
             await upsert_order_cache(
                 marketplace=marketplace.name,
@@ -186,3 +189,98 @@ def _parse_order_date(marketplace_name: str, order: MarketOrder) -> str | None:
     except Exception:
         pass
     return None
+
+
+def _export_order_json(
+    marketplace_name: str,
+    order: MarketOrder,
+    odoo_order_id: int,
+    invoice_id: int | None,
+    odoo: OdooClient,
+) -> None:
+    cfg = get_config()
+    export_path = cfg.sync.order_export_path
+    if not export_path:
+        return
+
+    try:
+        from pathlib import Path
+
+        export_dir = Path(export_path)
+        export_dir.mkdir(parents=True, exist_ok=True)
+
+        sale_order_name = ""
+        invoice_name = ""
+        picking_name = ""
+        picking_id = None
+
+        try:
+            so_data = odoo._call(
+                "sale.order", "search_read",
+                [[["id", "=", odoo_order_id]]],
+                {"fields": ["name"], "limit": 1},
+            )
+            if so_data:
+                sale_order_name = so_data[0].get("name", "")
+        except Exception:
+            pass
+
+        if invoice_id:
+            try:
+                inv_data = odoo._call(
+                    "account.move", "search_read",
+                    [[["id", "=", invoice_id]]],
+                    {"fields": ["name"], "limit": 1},
+                )
+                if inv_data:
+                    invoice_name = inv_data[0].get("name", "")
+            except Exception:
+                pass
+
+        try:
+            pick_data = odoo._call(
+                "stock.picking", "search_read",
+                [[["sale_id", "=", odoo_order_id]]],
+                {"fields": ["id", "name"], "limit": 1},
+            )
+            if pick_data:
+                picking_id = pick_data[0].get("id")
+                picking_name = pick_data[0].get("name", "")
+        except Exception:
+            pass
+
+        order_date = _parse_order_date(marketplace_name, order)
+
+        export_data = {
+            "marketplace": marketplace_name,
+            "marketplace_order_id": order.order_id,
+            "buyer_name": order.buyer_name,
+            "items": [
+                {
+                    "product_name": it.get("product_name", ""),
+                    "marketplace_product_id": it.get("marketplace_product_id", ""),
+                    "qty": it.get("qty", 0),
+                    "price": it.get("price", 0),
+                }
+                for it in order.items
+            ],
+            "total_amount": order.total_amount,
+            "order_date": order_date,
+            "odoo": {
+                "sale_order_id": odoo_order_id,
+                "sale_order_name": sale_order_name,
+                "invoice_id": invoice_id,
+                "invoice_name": invoice_name,
+                "picking_id": picking_id,
+                "picking_name": picking_name,
+            },
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+
+        filename = f"{marketplace_name}_{order.order_id}.json"
+        filepath = export_dir / filename
+        filepath.write_text(json.dumps(export_data, indent=2, ensure_ascii=False))
+        logger.info(f"[{marketplace_name}] Order exported to {filepath}")
+
+    except Exception as e:
+        logger.error(f"[{marketplace_name}] Failed to export order {order.order_id}: {e}")
