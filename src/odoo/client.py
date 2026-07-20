@@ -161,7 +161,7 @@ class OdooClient:
         return True
 
     def create_invoice_from_sale_order(self, sale_order_id: int) -> int | None:
-        invoice_ids = self._call("sale.order", "action_invoice_create", [[sale_order_id], {"final": True}])
+        invoice_ids = self._call("sale.order", "_create_invoices", [[sale_order_id], {"final": True}])
         if invoice_ids:
             invoice_id = invoice_ids[0]
             self._call("account.move", "action_post", [[invoice_id]])

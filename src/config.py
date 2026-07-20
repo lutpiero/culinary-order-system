@@ -34,6 +34,9 @@ class SyncConfig(BaseModel):
     conflict_resolution: str = "odoo_wins"
     auto_confirm_orders: bool = True
     order_export_path: str = ""
+    whatsapp_enabled: bool = False
+    whatsapp_api_url: str = "http://localhost:8000/send-message"
+    whatsapp_phone: str = "6285714481150"
     min_price: float = 1000.0
     max_stock: int = 99999
     min_stock_floor: int = 0

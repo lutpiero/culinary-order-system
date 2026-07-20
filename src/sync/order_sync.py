@@ -4,6 +4,7 @@ import asyncio
 import json
 from datetime import UTC, datetime
 
+import httpx
 from loguru import logger
 
 from src.config import get_config
@@ -80,7 +81,13 @@ async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarket
                         "Sale order confirmed but invoice NOT created."
                     )
 
-            _export_order_json(marketplace.name, order, odoo_order_id, invoice_id, odoo)
+            sale_order_name, invoice_name = _export_order_json(
+                marketplace.name, order, odoo_order_id, invoice_id, odoo
+            )
+
+            _send_whatsapp_notification(
+                marketplace.name, order, sale_order_name, invoice_name
+            )
 
             await upsert_order_cache(
                 marketplace=marketplace.name,
@@ -197,11 +204,37 @@ def _export_order_json(
     odoo_order_id: int,
     invoice_id: int | None,
     odoo: OdooClient,
-) -> None:
+) -> tuple[str, str]:
+    sale_order_name = ""
+    invoice_name = ""
+
+    try:
+        so_data = odoo._call(
+            "sale.order", "search_read",
+            [[["id", "=", odoo_order_id]]],
+            {"fields": ["name"], "limit": 1},
+        )
+        if so_data:
+            sale_order_name = so_data[0].get("name", "")
+    except Exception:
+        pass
+
+    if invoice_id:
+        try:
+            inv_data = odoo._call(
+                "account.move", "search_read",
+                [[["id", "=", invoice_id]]],
+                {"fields": ["name"], "limit": 1},
+            )
+            if inv_data:
+                invoice_name = inv_data[0].get("name", "")
+        except Exception:
+            pass
+
     cfg = get_config()
     export_path = cfg.sync.order_export_path
     if not export_path:
-        return
+        return sale_order_name, invoice_name
 
     try:
         from pathlib import Path
@@ -209,33 +242,8 @@ def _export_order_json(
         export_dir = Path(export_path)
         export_dir.mkdir(parents=True, exist_ok=True)
 
-        sale_order_name = ""
-        invoice_name = ""
         picking_name = ""
         picking_id = None
-
-        try:
-            so_data = odoo._call(
-                "sale.order", "search_read",
-                [[["id", "=", odoo_order_id]]],
-                {"fields": ["name"], "limit": 1},
-            )
-            if so_data:
-                sale_order_name = so_data[0].get("name", "")
-        except Exception:
-            pass
-
-        if invoice_id:
-            try:
-                inv_data = odoo._call(
-                    "account.move", "search_read",
-                    [[["id", "=", invoice_id]]],
-                    {"fields": ["name"], "limit": 1},
-                )
-                if inv_data:
-                    invoice_name = inv_data[0].get("name", "")
-            except Exception:
-                pass
 
         try:
             pick_data = odoo._call(
@@ -284,3 +292,65 @@ def _export_order_json(
 
     except Exception as e:
         logger.error(f"[{marketplace_name}] Failed to export order {order.order_id}: {e}")
+
+    return sale_order_name, invoice_name
+
+
+def _format_whatsapp_message(
+    marketplace_name: str,
+    order: MarketOrder,
+    sale_order_name: str,
+    invoice_name: str,
+) -> str:
+    mp_label = marketplace_name.title()
+    lines = [f"🛒 *Order Baru dari {mp_label}*", "", f"Order ID: {order.order_id}"]
+
+    if order.buyer_name:
+        lines.append(f"Pembeli: {order.buyer_name}")
+    lines.append("")
+
+    for item in order.items:
+        name = item.get("product_name", item.get("marketplace_product_id", "?"))
+        qty = item.get("qty", 1)
+        price = item.get("price", 0)
+        if price > 0:
+            lines.append(f"• {name} × {qty} @ Rp{price:,.0f}")
+        else:
+            lines.append(f"• {name} × {qty}")
+
+    if order.total_amount > 0:
+        lines.append("")
+        lines.append(f"*Total: Rp{order.total_amount:,.0f}*")
+
+    lines.append("")
+    if sale_order_name:
+        lines.append(f"SO: {sale_order_name}")
+    if invoice_name:
+        lines.append(f"Invoice: {invoice_name}")
+
+    return "\n".join(lines)
+
+
+def _send_whatsapp_notification(
+    marketplace_name: str,
+    order: MarketOrder,
+    sale_order_name: str,
+    invoice_name: str,
+) -> None:
+    cfg = get_config()
+    if not cfg.sync.whatsapp_enabled:
+        return
+
+    try:
+        message = _format_whatsapp_message(marketplace_name, order, sale_order_name, invoice_name)
+
+        resp = httpx.post(
+            cfg.sync.whatsapp_api_url,
+            json={"phone_number": cfg.sync.whatsapp_phone, "message": message},
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+        logger.info(f"[{marketplace_name}] WhatsApp notification sent for order {order.order_id}")
+
+    except Exception as e:
+        logger.error(f"[{marketplace_name}] Failed to send WhatsApp for order {order.order_id}: {e}")
