@@ -29,7 +29,7 @@ sync:
   auto_confirm_orders: true
   order_export_path: ""
   whatsapp_enabled: false
-  whatsapp_api_url: "http://localhost:8000/send-message"
+  whatsapp_api_url: "http://localhost:8001/send-message"
   whatsapp_phone: "${WHATSAPP_PHONE}"
   min_price: 1000
   max_stock: 99999

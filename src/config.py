@@ -35,7 +35,7 @@ class SyncConfig(BaseModel):
     auto_confirm_orders: bool = True
     order_export_path: str = ""
     whatsapp_enabled: bool = False
-    whatsapp_api_url: str = "http://localhost:8000/send-message"
+    whatsapp_api_url: str = "http://localhost:8001/send-message"
     whatsapp_phone: str = ""
     min_price: float = 1000.0
     max_stock: int = 99999
