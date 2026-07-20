@@ -177,17 +177,20 @@ class OdooClient:
             [so["order_line"], ["product_id", "product_uom_qty", "price_unit"]],
         )
 
-        account_id = self._get_revenue_account()
+        product_ids = [line["product_id"][0] for line in line_data if line.get("product_id")]
+        product_accounts = self._get_product_accounts(product_ids)
+
         invoice_lines = []
         for line in line_data:
             product = line["product_id"]
             product_name = product[1] if isinstance(product, list) else str(product)
+            pid = line["product_id"][0]
             invoice_lines.append((0, 0, {
                 "name": product_name,
-                "product_id": line["product_id"][0],
+                "product_id": pid,
                 "quantity": line["product_uom_qty"],
                 "price_unit": line["price_unit"],
-                "account_id": account_id,
+                "account_id": product_accounts.get(pid),
             }))
 
         invoice_id = self._call("account.move", "create", [{
@@ -229,6 +232,41 @@ class OdooClient:
         if not result:
             raise ValueError("No revenue account found in Odoo")
         return result[0]
+
+    def _get_product_accounts(self, product_ids: list[int]) -> dict[int, int]:
+        accounts: dict[int, int] = {}
+        fallback = self._get_revenue_account()
+
+        if not product_ids:
+            return accounts
+
+        prod_data = self._call(
+            "product.product", "read",
+            [product_ids, ["property_account_income_id", "categ_id"]],
+        )
+        categ_ids = list({p["categ_id"][0] for p in prod_data if p.get("categ_id")})
+        categ_accounts: dict[int, int] = {}
+        if categ_ids:
+            categ_data = self._call(
+                "product.category", "read",
+                [categ_ids, ["property_account_income_categ_id"]],
+            )
+            for c in categ_data:
+                acc = c.get("property_account_income_categ_id")
+                if acc:
+                    categ_accounts[c["id"]] = acc[0]
+
+        for p in prod_data:
+            pid = p["id"]
+            acc = p.get("property_account_income_id")
+            if acc:
+                accounts[pid] = acc[0]
+            elif p.get("categ_id") and p["categ_id"][0] in categ_accounts:
+                accounts[pid] = categ_accounts[p["categ_id"][0]]
+            else:
+                accounts[pid] = fallback
+
+        return accounts
 
     def _get_location_id(self, complete_name: str) -> int:
         result = self._call(
