@@ -163,7 +163,7 @@ class OdooClient:
     def create_invoice_from_sale_order(self, sale_order_id: int) -> int | None:
         so_data = self._call(
             "sale.order", "read",
-            [[sale_order_id], {"fields": ["partner_id", "name", "order_line"]}],
+            [[sale_order_id], ["partner_id", "name", "order_line"]],
         )
         if not so_data:
             logger.warning(f"sale.order#{sale_order_id} not found")
@@ -174,7 +174,7 @@ class OdooClient:
 
         line_data = self._call(
             "sale.order.line", "read",
-            [so["order_line"], {"fields": ["product_id", "product_uom_qty", "price_unit"]}],
+            [so["order_line"], ["product_id", "product_uom_qty", "price_unit"]],
         )
 
         account_id = self._get_revenue_account()
@@ -223,7 +223,7 @@ class OdooClient:
     def _get_revenue_account(self) -> int:
         result = self._call(
             "account.account", "search",
-            [[["account_type", "=", "income"], ["deprecated", "=", False]]],
+            [[["account_type", "=", "income"]]],
             {"limit": 1},
         )
         if not result:
