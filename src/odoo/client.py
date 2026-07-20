@@ -161,14 +161,44 @@ class OdooClient:
         return True
 
     def create_invoice_from_sale_order(self, sale_order_id: int) -> int | None:
-        invoice_ids = self._call("sale.order", "_create_invoices", [[sale_order_id], {"final": True}])
-        if invoice_ids:
-            invoice_id = invoice_ids[0]
-            self._call("account.move", "action_post", [[invoice_id]])
-            logger.info(f"Odoo account.move#{invoice_id} created and posted from sale.order#{sale_order_id}")
-            return invoice_id
-        logger.warning(f"No invoice created from sale.order#{sale_order_id}")
-        return None
+        so_data = self._call(
+            "sale.order", "read",
+            [[sale_order_id], {"fields": ["partner_id", "name", "order_line"]}],
+        )
+        if not so_data:
+            logger.warning(f"sale.order#{sale_order_id} not found")
+            return None
+        so = so_data[0]
+        partner_id = so["partner_id"][0]
+        so_name = so.get("name", "")
+
+        line_data = self._call(
+            "sale.order.line", "read",
+            [so["order_line"], {"fields": ["product_id", "product_uom_qty", "price_unit"]}],
+        )
+
+        account_id = self._get_revenue_account()
+        invoice_lines = []
+        for line in line_data:
+            product = line["product_id"]
+            product_name = product[1] if isinstance(product, list) else str(product)
+            invoice_lines.append((0, 0, {
+                "name": product_name,
+                "product_id": line["product_id"][0],
+                "quantity": line["product_uom_qty"],
+                "price_unit": line["price_unit"],
+                "account_id": account_id,
+            }))
+
+        invoice_id = self._call("account.move", "create", [{
+            "move_type": "out_invoice",
+            "partner_id": partner_id,
+            "invoice_origin": so_name,
+            "invoice_line_ids": invoice_lines,
+        }])
+        self._call("account.move", "action_post", [[invoice_id]])
+        logger.info(f"Odoo account.move#{invoice_id} created and posted from sale.order#{sale_order_id}")
+        return invoice_id
 
     def get_or_create_partner(self, name: str, phone: str | None = None) -> int:
         domain = [("name", "=", name)]
@@ -188,6 +218,16 @@ class OdooClient:
         result = self._call("uom.uom", "search", [[["name", "=", "Units"]]], {"limit": 1})
         if not result:
             raise ValueError("UoM 'Units' not found in Odoo")
+        return result[0]
+
+    def _get_revenue_account(self) -> int:
+        result = self._call(
+            "account.account", "search",
+            [[["account_type", "=", "income"], ["deprecated", "=", False]]],
+            {"limit": 1},
+        )
+        if not result:
+            raise ValueError("No revenue account found in Odoo")
         return result[0]
 
     def _get_location_id(self, complete_name: str) -> int:
