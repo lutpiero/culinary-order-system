@@ -338,6 +338,37 @@ class ShopeeAdapter(BaseMarketplace):
                     raw_price = pay_info.get("total_price", 0)
                     total_amount = raw_price / 100000 if raw_price > 100000 else float(raw_price) if raw_price else 0.0
 
+                    buyer_info = header.get("buyer_info", {})
+                    buyer_phone = buyer_info.get("phone", "")
+                    buyer_email = buyer_info.get("email", "")
+
+                    shipping_addr = {}
+                    addr = ext.get("shipping_address", {}) or ext.get("address", {})
+                    if addr:
+                        shipping_addr = {
+                            "name": addr.get("name", buyer_name),
+                            "phone": addr.get("phone", buyer_phone),
+                            "address": addr.get("address", ""),
+                            "city": addr.get("city", ""),
+                            "state": addr.get("state", addr.get("province", "")),
+                            "district": addr.get("district", ""),
+                            "postal_code": addr.get("zipcode", addr.get("postal_code", "")),
+                        }
+
+                    courier_name = ""
+                    tracking_number = ""
+                    shipping_etd = ""
+                    logistics = header.get("logistics_info", {}) or polo.get("logistics", {}) if polo else {}
+                    if not logistics:
+                        logistics = oc.get("logistics", {}) if oc else {}
+                    if logistics:
+                        courier_name = logistics.get("logistics_channel_name", logistics.get("logistics_name", ""))
+                        tracking_number = logistics.get("tracking_number", "")
+                        shipping_etd = logistics.get("estimated_delivery_time", logistics.get("etd", ""))
+
+                    shipping_cost_raw = pay_info.get("shipping_fee", 0) or pay_info.get("logistics_fee", 0)
+                    shipping_cost = float(shipping_cost_raw) / 100000 if shipping_cost_raw > 100000 else float(shipping_cost_raw) if shipping_cost_raw else 0.0
+
                     if items and total_amount > 0:
                         total_qty = sum(i["qty"] for i in items)
                         for it in items:
@@ -347,9 +378,17 @@ class ShopeeAdapter(BaseMarketplace):
                         MarketOrder(
                             order_id=order_id,
                             buyer_name=buyer_name,
+                            buyer_phone=buyer_phone,
+                            buyer_email=buyer_email,
                             items=items,
                             total_amount=total_amount,
                             status=status,
+                            created_at="",
+                            shipping_address=shipping_addr,
+                            courier_name=courier_name,
+                            tracking_number=tracking_number,
+                            shipping_cost=shipping_cost,
+                            shipping_etd=shipping_etd,
                             raw=card,
                         )
                     )

@@ -170,7 +170,40 @@ async def _create_odoo_order(odoo: OdooClient, marketplace_name: str, order: Mar
 
     ref = f"[{marketplace_name.upper()}] {order.order_id}"
     date_order = _parse_order_date(marketplace_name, order)
-    return odoo.create_sale_order(partner_id, lines, ref=ref, date_order=date_order)
+
+    shipping_partner_id = None
+    shipping_note = None
+
+    if order.shipping_address:
+        try:
+            shipping_partner_id = odoo.create_shipping_partner(
+                parent_id=partner_id,
+                name=order.shipping_address.get("name", order.buyer_name),
+                address=order.shipping_address,
+            )
+            logger.info(f"[{marketplace_name}] Created delivery partner#{shipping_partner_id}")
+        except Exception as e:
+            logger.warning(f"[{marketplace_name}] Failed to create delivery partner: {e}")
+
+    shipping_parts = []
+    if order.courier_name:
+        shipping_parts.append(f"Kurir: {order.courier_name}")
+    if order.tracking_number:
+        shipping_parts.append(f"Tracking: {order.tracking_number}")
+    if order.shipping_cost > 0:
+        shipping_parts.append(f"Ongkir: Rp{order.shipping_cost:,.0f}")
+    if order.shipping_etd:
+        shipping_parts.append(f"Estimasi: {order.shipping_etd}")
+    if shipping_parts:
+        shipping_note = " | ".join(shipping_parts)
+
+    return odoo.create_sale_order(
+        partner_id, lines,
+        ref=ref,
+        date_order=date_order,
+        shipping_note=shipping_note,
+        shipping_partner_id=shipping_partner_id,
+    )
 
 
 def _parse_order_date(marketplace_name: str, order: MarketOrder) -> str | None:
@@ -263,6 +296,7 @@ def _export_order_json(
             "marketplace": marketplace_name,
             "marketplace_order_id": order.order_id,
             "buyer_name": order.buyer_name,
+            "buyer_phone": order.buyer_phone,
             "items": [
                 {
                     "product_name": it.get("product_name", ""),
@@ -274,6 +308,13 @@ def _export_order_json(
             ],
             "total_amount": order.total_amount,
             "order_date": order_date,
+            "shipping": {
+                "courier": order.courier_name,
+                "tracking": order.tracking_number,
+                "cost": order.shipping_cost,
+                "etd": order.shipping_etd,
+                "address": order.shipping_address,
+            },
             "odoo": {
                 "sale_order_id": odoo_order_id,
                 "sale_order_name": sale_order_name,
@@ -327,6 +368,24 @@ def _format_whatsapp_message(
         lines.append(f"SO: {sale_order_name}")
     if invoice_name:
         lines.append(f"Invoice: {invoice_name}")
+
+    if order.courier_name or order.tracking_number or order.shipping_cost > 0:
+        lines.append("")
+        lines.append("*Info Pengiriman:*")
+        if order.courier_name:
+            lines.append(f"Kurir: {order.courier_name}")
+        if order.tracking_number:
+            lines.append(f"Tracking: {order.tracking_number}")
+        if order.shipping_cost > 0:
+            lines.append(f"Ongkir: Rp{order.shipping_cost:,.0f}")
+        if order.shipping_etd:
+            lines.append(f"Estimasi: {order.shipping_etd}")
+        addr = order.shipping_address
+        if addr:
+            addr_parts = [addr.get("address", ""), addr.get("district", ""), addr.get("city", ""), addr.get("state", "")]
+            addr_str = ", ".join(p for p in addr_parts if p)
+            if addr_str:
+                lines.append(f"Alamat: {addr_str}")
 
     return "\n".join(lines)
 

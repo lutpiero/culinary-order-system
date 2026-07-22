@@ -28,10 +28,16 @@ class MarketOrder:
     order_id: str
     buyer_name: str = ""
     buyer_phone: str = ""
+    buyer_email: str = ""
     items: list[dict] = field(default_factory=list)
     total_amount: float = 0.0
     status: str = ""
     created_at: str = ""
+    shipping_address: dict = field(default_factory=dict)
+    courier_name: str = ""
+    tracking_number: str = ""
+    shipping_cost: float = 0.0
+    shipping_etd: str = ""
     raw: dict = field(default_factory=dict)
 
 

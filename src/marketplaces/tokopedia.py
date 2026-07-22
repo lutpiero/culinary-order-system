@@ -357,14 +357,46 @@ class TokopediaAdapter(BaseMarketplace):
 
                     buyer_name = f"Tokopedia Buyer ({order_id})"
 
+                    addr_module = main_order.get("address_module", {})
+                    buyer_phone = ""
+                    shipping_addr = {}
+                    if addr_module:
+                        buyer_phone = addr_module.get("phone", "")
+                        shipping_addr = {
+                            "name": addr_module.get("name", buyer_name),
+                            "phone": buyer_phone,
+                            "address": addr_module.get("address", addr_module.get("street", "")),
+                            "city": addr_module.get("city", ""),
+                            "state": addr_module.get("province", ""),
+                            "district": addr_module.get("district", ""),
+                            "postal_code": addr_module.get("zip_code", ""),
+                        }
+                        if not buyer_name or buyer_name.startswith("Tokopedia Buyer"):
+                            buyer_name = addr_module.get("name", buyer_name)
+
+                    courier_name = ""
+                    tracking_number = ""
+                    shipping_etd = ""
+                    logistics = main_order.get("logistics_module", main_order.get("logistic", {}))
+                    if logistics:
+                        courier_name = logistics.get("logistic_name", logistics.get("courier_name", ""))
+                        tracking_number = logistics.get("tracking_number", logistics.get("resi", ""))
+                        shipping_etd = logistics.get("etd", "")
+
                     orders.append(
                         MarketOrder(
                             order_id=order_id,
                             buyer_name=buyer_name,
+                            buyer_phone=buyer_phone,
                             items=items,
                             total_amount=total_amount,
                             status=status,
                             created_at=created_at,
+                            shipping_address=shipping_addr,
+                            courier_name=courier_name,
+                            tracking_number=tracking_number,
+                            shipping_cost=shipping,
+                            shipping_etd=shipping_etd,
                             raw=main_order,
                         )
                     )

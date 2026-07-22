@@ -135,7 +135,15 @@ class OdooClient:
             ]
         return self._call("sale.order", "search_read", [domain], {"fields": fields, "limit": 200})
 
-    def create_sale_order(self, partner_id: int, lines: list[dict], ref: str | None = None, date_order: str | None = None) -> int:
+    def create_sale_order(
+        self,
+        partner_id: int,
+        lines: list[dict],
+        ref: str | None = None,
+        date_order: str | None = None,
+        shipping_note: str | None = None,
+        shipping_partner_id: int | None = None,
+    ) -> int:
         uom_id = self._get_default_uom()
         vals: dict[str, Any] = {
             "partner_id": partner_id,
@@ -153,7 +161,37 @@ class OdooClient:
             vals["client_order_ref"] = ref
         if date_order:
             vals["date_order"] = date_order
+        if shipping_partner_id:
+            vals["partner_shipping_id"] = shipping_partner_id
+        if shipping_note:
+            vals["note"] = shipping_note
         return self._call("sale.order", "create", [vals])
+
+    def create_shipping_partner(self, parent_id: int, name: str, address: dict) -> int:
+        vals: dict[str, Any] = {
+            "parent_id": parent_id,
+            "name": name,
+            "type": "delivery",
+        }
+        if address.get("phone"):
+            vals["phone"] = address["phone"]
+        if address.get("address"):
+            vals["street"] = address["address"]
+        if address.get("city"):
+            vals["city"] = address["city"]
+        if address.get("state"):
+            state_id = self._call(
+                "res.country.state", "search",
+                [[["name", "=", address["state"]]]],
+                {"limit": 1},
+            )
+            if state_id:
+                vals["state_id"] = state_id[0]
+        if address.get("district"):
+            vals["street2"] = address["district"]
+        if address.get("postal_code"):
+            vals["zip"] = address["postal_code"]
+        return self._call("res.partner", "create", [vals])
 
     def confirm_sale_order(self, order_id: int) -> bool:
         self._call("sale.order", "action_confirm", [[order_id]])
