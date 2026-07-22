@@ -356,43 +356,38 @@ class TokopediaAdapter(BaseMarketplace):
                     total_amount += shipping
 
                     buyer_name = f"Tokopedia Buyer ({order_id})"
+                    buyer_info = main_order.get("buyer_info_module", {})
+                    nickname = buyer_info.get("buyer_nickname", "")
+                    if nickname:
+                        buyer_name = nickname
 
-                    addr_module = main_order.get("address_module", {})
-                    buyer_phone = ""
-                    shipping_addr = {}
-                    if addr_module:
-                        buyer_phone = addr_module.get("phone", "")
-                        shipping_addr = {
-                            "name": addr_module.get("name", buyer_name),
-                            "phone": buyer_phone,
-                            "address": addr_module.get("address", addr_module.get("street", "")),
-                            "city": addr_module.get("city", ""),
-                            "state": addr_module.get("province", ""),
-                            "district": addr_module.get("district", ""),
-                            "postal_code": addr_module.get("zip_code", ""),
-                        }
-                        if not buyer_name or buyer_name.startswith("Tokopedia Buyer"):
-                            buyer_name = addr_module.get("name", buyer_name)
-
+                    delivery = main_order.get("delivery_module", [{}])
+                    delivery = delivery[0] if delivery else {}
                     courier_name = ""
                     tracking_number = ""
                     shipping_etd = ""
-                    logistics = main_order.get("logistics_module", main_order.get("logistic", {}))
-                    if logistics:
-                        courier_name = logistics.get("logistic_name", logistics.get("courier_name", ""))
-                        tracking_number = logistics.get("tracking_number", logistics.get("resi", ""))
-                        shipping_etd = logistics.get("etd", "")
+                    shipment_provider = delivery.get("shipment_provider_info", {})
+                    if shipment_provider:
+                        courier_name = shipment_provider.get("name", "")
+                    logistics_service = delivery.get("logistics_service_info", {})
+                    if logistics_service:
+                        service_name = logistics_service.get("logistics_service_name", "")
+                        if service_name and not courier_name:
+                            courier_name = service_name
+                        elif service_name and courier_name:
+                            courier_name = f"{courier_name} ({service_name})"
+                    tracking_number = delivery.get("last_tracking_no", "")
 
                     orders.append(
                         MarketOrder(
                             order_id=order_id,
                             buyer_name=buyer_name,
-                            buyer_phone=buyer_phone,
+                            buyer_phone="",
                             items=items,
                             total_amount=total_amount,
                             status=status,
                             created_at=created_at,
-                            shipping_address=shipping_addr,
+                            shipping_address={},
                             courier_name=courier_name,
                             tracking_number=tracking_number,
                             shipping_cost=shipping,

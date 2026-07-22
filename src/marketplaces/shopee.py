@@ -338,36 +338,45 @@ class ShopeeAdapter(BaseMarketplace):
                     raw_price = pay_info.get("total_price", 0)
                     total_amount = raw_price / 100000 if raw_price > 100000 else float(raw_price) if raw_price else 0.0
 
-                    buyer_info = header.get("buyer_info", {})
-                    buyer_phone = buyer_info.get("phone", "")
-                    buyer_email = buyer_info.get("email", "")
-
                     shipping_addr = {}
-                    addr = ext.get("shipping_address", {}) or ext.get("address", {})
-                    if addr:
-                        shipping_addr = {
-                            "name": addr.get("name", buyer_name),
-                            "phone": addr.get("phone", buyer_phone),
-                            "address": addr.get("address", ""),
-                            "city": addr.get("city", ""),
-                            "state": addr.get("state", addr.get("province", "")),
-                            "district": addr.get("district", ""),
-                            "postal_code": addr.get("zipcode", addr.get("postal_code", "")),
-                        }
-
                     courier_name = ""
                     tracking_number = ""
+                    shipping_cost = 0.0
                     shipping_etd = ""
-                    logistics = header.get("logistics_info", {}) or polo.get("logistics", {}) if polo else {}
-                    if not logistics:
-                        logistics = oc.get("logistics", {}) if oc else {}
-                    if logistics:
-                        courier_name = logistics.get("logistics_channel_name", logistics.get("logistics_name", ""))
-                        tracking_number = logistics.get("tracking_number", "")
-                        shipping_etd = logistics.get("estimated_delivery_time", logistics.get("etd", ""))
 
-                    shipping_cost_raw = pay_info.get("shipping_fee", 0) or pay_info.get("logistics_fee", 0)
-                    shipping_cost = float(shipping_cost_raw) / 100000 if shipping_cost_raw > 100000 else float(shipping_cost_raw) if shipping_cost_raw else 0.0
+                    detail = await self._fetch_order_detail(page, order_id)
+                    if detail:
+                        order_data = detail.get("data", {}).get("order_data", {})
+                        addr = order_data.get("shipping_address", {})
+                        if addr:
+                            shipping_addr = {
+                                "name": addr.get("name", buyer_name),
+                                "phone": addr.get("phone", ""),
+                                "address": addr.get("address", ""),
+                                "city": addr.get("city", ""),
+                                "state": addr.get("state", addr.get("province", "")),
+                                "district": addr.get("district", ""),
+                                "postal_code": addr.get("zipcode", addr.get("postal_code", "")),
+                            }
+                            if not buyer_name:
+                                buyer_name = addr.get("name", buyer_name)
+
+                        logistics = order_data.get("logistics", {})
+                        if logistics:
+                            courier_name = logistics.get("logistics_channel_name", logistics.get("logistics_name", ""))
+                            tracking_number = logistics.get("tracking_number", "")
+                            shipping_etd = logistics.get("estimated_delivery_time", logistics.get("etd", ""))
+
+                        detail_pay = order_data.get("payment", {})
+                        if detail_pay:
+                            ship_fee = detail_pay.get("shipping_fee", 0)
+                            shipping_cost = float(ship_fee) / 100000 if ship_fee > 100000 else float(ship_fee) if ship_fee else 0.0
+                            if shipping_cost == 0:
+                                logis_fee = detail_pay.get("logistics_fee", 0)
+                                shipping_cost = float(logis_fee) / 100000 if logis_fee > 100000 else float(logis_fee) if logis_fee else 0.0
+
+                        if not buyer_name or buyer_name.startswith("Shopee"):
+                            buyer_name = order_data.get("buyer_username", buyer_name)
 
                     if items and total_amount > 0:
                         total_qty = sum(i["qty"] for i in items)
@@ -378,8 +387,6 @@ class ShopeeAdapter(BaseMarketplace):
                         MarketOrder(
                             order_id=order_id,
                             buyer_name=buyer_name,
-                            buyer_phone=buyer_phone,
-                            buyer_email=buyer_email,
                             items=items,
                             total_amount=total_amount,
                             status=status,
@@ -400,6 +407,33 @@ class ShopeeAdapter(BaseMarketplace):
             logger.error(f"[shopee] Failed to load orders: {e}")
 
         return orders
+
+    async def _fetch_order_detail(self, page, order_id: str) -> dict | None:
+        try:
+            result = await page.evaluate(
+                """async (args) => {
+                    try {
+                        const r = await fetch("/api/v3/order/get_order_detail", {
+                            method: "POST",
+                            headers: {"Content-Type": "application/json"},
+                            body: JSON.stringify({
+                                order_id: parseInt(args.order_id),
+                                need_user_confirm: false,
+                            }),
+                        });
+                        return await r.json();
+                    } catch (e) {
+                        return {code: -1, message: e.message};
+                    }
+                }""",
+                {"order_id": order_id},
+            )
+            if result and result.get("code") == 0:
+                return result
+            logger.debug(f"[shopee] Order detail API for {order_id}: {result.get('message', 'error') if result else 'no response'}")
+        except Exception as e:
+            logger.debug(f"[shopee] Failed to fetch detail for {order_id}: {e}")
+        return None
 
     async def create_product(self, product: MarketProduct) -> str | None:
         logger.warning(
