@@ -28,6 +28,8 @@ sync:
   conflict_resolution: "odoo_wins"
   auto_confirm_orders: true
   order_export_path: ""
+  download_labels: false
+  label_output_path: "labels"
   whatsapp_enabled: true
   whatsapp_api_url: "http://localhost:8001/send-message"
   whatsapp_phone: "${WHATSAPP_PHONE}"

@@ -34,6 +34,8 @@ class SyncConfig(BaseModel):
     conflict_resolution: str = "odoo_wins"
     auto_confirm_orders: bool = True
     order_export_path: str = ""
+    download_labels: bool = False
+    label_output_path: str = "labels"
     whatsapp_enabled: bool = False
     whatsapp_api_url: str = "http://localhost:8001/send-message"
     whatsapp_phone: str = ""

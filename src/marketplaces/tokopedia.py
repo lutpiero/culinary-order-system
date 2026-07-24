@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import re
+from datetime import date
+from pathlib import Path
 
 from loguru import logger
 from playwright.async_api import Page
@@ -403,6 +405,78 @@ class TokopediaAdapter(BaseMarketplace):
             logger.error(f"[tokopedia] Failed to load orders: {e}")
 
         return orders
+
+    async def download_shipping_label(self, order_id: str, output_dir: Path) -> Path | None:
+        page = await self._get_page()
+
+        if await self._check_login_needed(page):
+            logger.error("[tokopedia] Session expired, cannot download label.")
+            return None
+
+        try:
+            result = await page.evaluate(
+                """async (args) => {
+                    try {
+                        const r = await fetch("/api/fulfillment/order/print-document", {
+                            method: "POST",
+                            headers: {"Content-Type": "application/json"},
+                            body: JSON.stringify({
+                                order_id_list: [args.order_id],
+                                document_type: 1,
+                            }),
+                        });
+                        if (!r.ok) {
+                            return {code: -1, message: "HTTP " + r.status};
+                        }
+                        const contentType = r.headers.get("content-type") || "";
+                        if (contentType.includes("application/json")) {
+                            const json = await r.json();
+                            if (json.data && json.data.url) {
+                                const pdfR = await fetch(json.data.url);
+                                const buf = await pdfR.arrayBuffer();
+                                const bytes = new Uint8Array(buf);
+                                let binary = "";
+                                for (let i = 0; i < bytes.byteLength; i++) {
+                                    binary += String.fromCharCode(bytes[i]);
+                                }
+                                return {code: 0, data: btoa(binary)};
+                            }
+                            return {code: json.code || -1, message: json.message || "no url"};
+                        }
+                        const buf = await r.arrayBuffer();
+                        const bytes = new Uint8Array(buf);
+                        let binary = "";
+                        for (let i = 0; i < bytes.byteLength; i++) {
+                            binary += String.fromCharCode(bytes[i]);
+                        }
+                        return {code: 0, data: btoa(binary)};
+                    } catch (e) {
+                        return {code: -1, message: e.message};
+                    }
+                }""",
+                {"order_id": order_id},
+            )
+
+            if not result or result.get("code") != 0:
+                msg = result.get("message", "unknown") if result else "no response"
+                logger.warning(f"[tokopedia] Label download failed for {order_id}: {msg}")
+                return None
+
+            pdf_b64 = result.get("data", "")
+            if not pdf_b64:
+                logger.warning(f"[tokopedia] No PDF data returned for order {order_id}")
+                return None
+
+            output_dir.mkdir(parents=True, exist_ok=True)
+            filename = f"{date.today().isoformat()}_tokopedia_{order_id}.pdf"
+            filepath = output_dir / filename
+            filepath.write_bytes(__import__("base64").b64decode(pdf_b64))
+            logger.info(f"[tokopedia] Shipping label saved: {filepath}")
+            return filepath
+
+        except Exception as e:
+            logger.error(f"[tokopedia] Failed to download label for {order_id}: {e}")
+            return None
 
     async def create_product(self, product: MarketProduct) -> str | None:
         logger.warning("[tokopedia] create_product not yet implemented")

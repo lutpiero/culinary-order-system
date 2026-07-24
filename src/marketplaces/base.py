@@ -127,3 +127,7 @@ class BaseMarketplace(ABC):
     @abstractmethod
     async def create_product(self, product: MarketProduct) -> str | None:
         ...
+
+    async def download_shipping_label(self, order_id: str, output_dir: Path) -> Path | None:
+        """Download shipping label PDF for an order. Returns file path or None."""
+        return None

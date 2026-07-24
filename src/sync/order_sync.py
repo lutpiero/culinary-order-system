@@ -89,6 +89,19 @@ async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarket
                 marketplace.name, order, sale_order_name, invoice_name
             )
 
+            if cfg.sync.download_labels:
+                try:
+                    from pathlib import Path
+
+                    label_dir = Path(cfg.sync.label_output_path)
+                    if not label_dir.is_absolute():
+                        label_dir = Path(cfg.base_dir) / label_dir
+                    await marketplace.download_shipping_label(order.order_id, label_dir)
+                except Exception as e:
+                    logger.error(
+                        f"[{marketplace.name}] Failed to download label for {order.order_id}: {e}"
+                    )
+
             await upsert_order_cache(
                 marketplace=marketplace.name,
                 marketplace_order_id=order.order_id,
