@@ -418,7 +418,7 @@ def _send_whatsapp_notification(
 
         resp = httpx.post(
             cfg.sync.whatsapp_api_url,
-            json={"phone_number": cfg.sync.whatsapp_phone, "message": message},
+            json={"recipient": cfg.sync.whatsapp_phone, "message": message},
             timeout=10.0,
         )
         resp.raise_for_status()
