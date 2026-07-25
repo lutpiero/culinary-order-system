@@ -75,8 +75,12 @@ class ShopeeAdapter(BaseMarketplace):
         logger.info("[shopee] Browser opened. Please log in manually.")
         logger.info("[shopee] Waiting for redirect to seller portal (up to 5 minutes)...")
         try:
-            await page.wait_for_url("https://seller.shopee.co.id/portal/**", timeout=300_000)
+            await page.wait_for_url("**/portal/**", timeout=300_000)
             await asyncio.sleep(5)
+            url = page.url
+            if "accounts.shopee" in url or "seller/login" in url:
+                logger.error(f"[shopee] Still on login page: {url}")
+                return False
             screenshot_path = self._base_dir / "sessions" / "shopee_login_result.png"
             await page.screenshot(path=str(screenshot_path), full_page=True)
             logger.info(f"[shopee] Login screenshot saved: {screenshot_path}")
