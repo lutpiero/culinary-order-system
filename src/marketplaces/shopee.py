@@ -77,6 +77,9 @@ class ShopeeAdapter(BaseMarketplace):
         try:
             await page.wait_for_url("**/portal/**", timeout=300_000)
             await asyncio.sleep(3)
+            screenshot_path = self._base_dir / "sessions" / "shopee_login_result.png"
+            await page.screenshot(path=str(screenshot_path), full_page=True)
+            logger.info(f"[shopee] Login screenshot saved: {screenshot_path}")
             self._save_on_close = True
             await self._save_session()
             logger.success("[shopee] Login successful! Session saved.")
@@ -305,7 +308,9 @@ class ShopeeAdapter(BaseMarketplace):
         await page.unroute("**/api/v3/order/get_order_list_card_list**")
 
         if await self._check_login_needed(page):
-            logger.error("[shopee] Session expired.")
+            screenshot_path = self._base_dir / "sessions" / "shopee_sync_fail.png"
+            await page.screenshot(path=str(screenshot_path), full_page=True)
+            logger.error(f"[shopee] Session expired. Screenshot saved: {screenshot_path}")
             return []
 
         orders: list[MarketOrder] = []
