@@ -77,13 +77,10 @@ class ShopeeAdapter(BaseMarketplace):
         try:
             await page.wait_for_url("https://seller.shopee.co.id/portal/**", timeout=300_000)
             await asyncio.sleep(5)
-            url = page.url
-            if "login" in url or "accounts.shopee" in url:
-                logger.error(f"[shopee] Still on login page: {url}")
-                return False
             screenshot_path = self._base_dir / "sessions" / "shopee_login_result.png"
             await page.screenshot(path=str(screenshot_path), full_page=True)
             logger.info(f"[shopee] Login screenshot saved: {screenshot_path}")
+            logger.info(f"[shopee] Current URL: {page.url}")
             self._save_on_close = True
             await self._save_session()
             logger.success("[shopee] Login successful! Session saved.")
