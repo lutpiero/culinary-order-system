@@ -24,8 +24,8 @@ class ShopeeAdapter(BaseMarketplace):
 
     async def _get_page(self, headless: bool = True):
         page = await super()._get_page(headless=headless)
-        if not getattr(self, "_ua_applied_to_page", False):
-            self._ua_applied_to_page = True
+        if not getattr(self, "_stealth_applied", False):
+            self._stealth_applied = True
             try:
                 cdp = await self._context.new_cdp_session(page)
                 await cdp.send(
@@ -35,15 +35,42 @@ class ShopeeAdapter(BaseMarketplace):
                         "(KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36",
                     },
                 )
-                logger.info("[shopee] UA override applied to page (HeadlessChrome hidden)")
+                await page.add_init_script("""
+                    Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                    Object.defineProperty(navigator, 'languages', {get: () => ['id-ID', 'id', 'en-US', 'en']});
+                    Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+                    window.chrome = {runtime: {}};
+                    Object.defineProperty(navigator, 'maxTouchPoints', {get: () => 0});
+                    const originalQuery = window.navigator.permissions.query;
+                    window.navigator.permissions.query = (parameters) => (
+                        parameters.name === 'notifications' ?
+                            Promise.resolve({ state: Notification.permission }) :
+                            originalQuery(parameters)
+                    );
+                """)
+                logger.info("[shopee] Stealth mode applied (UA + webdriver + plugins)")
             except Exception as e:
-                logger.warning(f"[shopee] UA override failed: {e}")
+                logger.warning(f"[shopee] Stealth override failed: {e}")
         return page
 
     async def login_interactive(self) -> bool:
         self._save_on_close = False
         ctx = await self._ensure_browser(headless=False)
         page = await ctx.new_page()
+        cdp = await ctx.new_cdp_session(page)
+        await cdp.send(
+            "Network.setUserAgentOverride",
+            {
+                "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36",
+            },
+        )
+        await page.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+            Object.defineProperty(navigator, 'languages', {get: () => ['id-ID', 'id', 'en-US', 'en']});
+            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+            window.chrome = {runtime: {}};
+        """)
         await page.goto(f"{self.config.seller_center_url}/portal/sale")
         logger.info("[shopee] Browser opened. Please log in manually.")
         logger.info("[shopee] Waiting for redirect to seller portal (up to 5 minutes)...")

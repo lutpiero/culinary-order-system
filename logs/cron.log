@@ -2972,3 +2972,1124 @@ shopee:
 tokopedia:
   synced: 1
   status: success
+11:30:04 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+11:30:04 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+11:30:09 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+11:30:12 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+11:30:13 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+11:30:52 | ERROR   | [shopee] Session expired.
+11:30:52 | INFO    | [shopee] No new orders found.
+11:30:53 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+11:30:53 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+11:30:56 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+11:31:27 | INFO    | [tokopedia] Found 1 orders (status=new)
+11:31:27 | INFO    | [tokopedia] Order sync complete: 0/1 imported
+11:31:31 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+12:00:04 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+12:00:04 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+12:00:09 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+12:00:13 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+12:00:13 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+12:00:50 | ERROR   | [shopee] Session expired.
+12:00:50 | INFO    | [shopee] No new orders found.
+12:00:51 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+12:00:51 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+12:00:54 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+12:01:20 | INFO    | [tokopedia] Found 1 orders (status=new)
+12:01:20 | INFO    | [tokopedia] Order sync complete: 0/1 imported
+12:01:25 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+12:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+12:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+12:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+12:30:11 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+12:30:11 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+12:30:48 | ERROR   | [shopee] Session expired.
+12:30:48 | INFO    | [shopee] No new orders found.
+12:30:48 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+12:30:49 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+12:30:52 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+12:31:22 | INFO    | [tokopedia] Found 1 orders (status=new)
+12:31:23 | INFO    | [tokopedia] Order sync complete: 0/1 imported
+12:31:27 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+13:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+13:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+13:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+13:00:12 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+13:00:12 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+13:00:40 | ERROR   | [shopee] Session expired.
+13:00:40 | INFO    | [shopee] No new orders found.
+13:00:40 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+13:00:41 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+13:00:43 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+13:01:13 | INFO    | [tokopedia] Found 1 orders (status=new)
+13:01:13 | INFO    | [tokopedia] Order sync complete: 0/1 imported
+13:01:15 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+13:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+13:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+13:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+13:30:12 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+13:30:13 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+13:30:40 | ERROR   | [shopee] Session expired.
+13:30:40 | INFO    | [shopee] No new orders found.
+13:30:41 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+13:30:41 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+13:30:45 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+13:31:16 | INFO    | [tokopedia] Found 1 orders (status=new)
+13:31:16 | INFO    | [tokopedia] Order sync complete: 0/1 imported
+13:31:21 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+14:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+14:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+14:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+14:00:11 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+14:00:11 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+14:00:38 | ERROR   | [shopee] Session expired.
+14:00:38 | INFO    | [shopee] No new orders found.
+14:00:38 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+14:00:39 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+14:00:41 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+14:01:08 | INFO    | [tokopedia] Found 1 orders (status=new)
+14:01:08 | INFO    | [tokopedia] Order sync complete: 0/1 imported
+14:01:11 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+14:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+14:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+14:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+14:30:11 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+14:30:11 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+14:30:40 | ERROR   | [shopee] Session expired.
+14:30:40 | INFO    | [shopee] No new orders found.
+14:30:40 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+14:30:41 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+14:30:43 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+14:31:12 | INFO    | [tokopedia] Found 1 orders (status=new)
+14:31:12 | INFO    | [tokopedia] Order sync complete: 0/1 imported
+14:31:15 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+15:00:04 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+15:00:04 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+15:00:09 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+15:00:12 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+15:00:12 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+15:00:40 | ERROR   | [shopee] Session expired.
+15:00:40 | INFO    | [shopee] No new orders found.
+15:00:41 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+15:00:41 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+15:00:44 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+15:01:14 | INFO    | [tokopedia] Found 1 orders (status=new)
+15:01:14 | INFO    | [tokopedia] Order sync complete: 0/1 imported
+15:01:18 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+15:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+15:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+15:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+15:30:11 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+15:30:11 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+15:30:31 | ERROR   | Order sync failed for shopee: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller.shopee.co.id/portal/sale/order?status=3
+Call log:
+  - navigating to "https://seller.shopee.co.id/portal/sale/order?status=3", waiting until "load"
+
+15:30:31 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+15:30:31 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+15:30:33 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+15:30:53 | ERROR   | Order sync failed for tokopedia: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller-id.tokopedia.com/order?shop_region=ID&status=new
+Call log:
+  - navigating to "https://seller-id.tokopedia.com/order?shop_region=ID&status=new", waiting until "load"
+
+15:30:54 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  error: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller.shopee.co.id/portal/sale/order?status=3
+Call log:
+  - navigating to "https://seller.shopee.co.id/portal/sale/order?status=3", waiting until "load"
+
+  status: failed
+
+tokopedia:
+  error: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller-id.tokopedia.com/order?shop_region=ID&status=new
+Call log:
+  - navigating to "https://seller-id.tokopedia.com/order?shop_region=ID&status=new", waiting until "load"
+
+  status: failed
+16:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+16:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+16:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+16:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+16:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+16:00:38 | ERROR   | [shopee] Session expired.
+16:00:38 | INFO    | [shopee] No new orders found.
+16:00:38 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+16:00:38 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+16:00:40 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+16:01:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+16:01:00 | INFO    | [tokopedia] No new orders found.
+16:01:00 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+16:30:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+16:30:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+16:30:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+16:30:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+16:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+16:30:37 | ERROR   | [shopee] Session expired.
+16:30:37 | INFO    | [shopee] No new orders found.
+16:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+16:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+16:30:40 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+16:31:04 | INFO    | [tokopedia] Found 0 orders (status=new)
+16:31:04 | INFO    | [tokopedia] No new orders found.
+16:31:09 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+17:00:04 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+17:00:04 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+17:00:09 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+17:00:11 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+17:00:11 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+17:00:38 | ERROR   | [shopee] Session expired.
+17:00:38 | INFO    | [shopee] No new orders found.
+17:00:39 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+17:00:39 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+17:00:41 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+17:01:08 | INFO    | [tokopedia] Found 0 orders (status=new)
+17:01:08 | INFO    | [tokopedia] No new orders found.
+17:01:14 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+17:30:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+17:30:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+17:30:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+17:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+17:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+17:30:36 | ERROR   | [shopee] Session expired.
+17:30:36 | INFO    | [shopee] No new orders found.
+17:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+17:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+17:30:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+17:31:03 | INFO    | [tokopedia] Found 0 orders (status=new)
+17:31:03 | INFO    | [tokopedia] No new orders found.
+17:31:04 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+18:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+18:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+18:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+18:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+18:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+18:00:37 | ERROR   | [shopee] Session expired.
+18:00:37 | INFO    | [shopee] No new orders found.
+18:00:38 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+18:00:38 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+18:00:40 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+18:01:06 | INFO    | [tokopedia] Found 0 orders (status=new)
+18:01:06 | INFO    | [tokopedia] No new orders found.
+18:01:10 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+18:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+18:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+18:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+18:30:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+18:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+18:30:37 | ERROR   | [shopee] Session expired.
+18:30:37 | INFO    | [shopee] No new orders found.
+18:30:38 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+18:30:38 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+18:30:40 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+18:31:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+18:31:00 | INFO    | [tokopedia] No new orders found.
+18:31:01 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+19:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+19:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+19:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+19:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+19:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+19:00:37 | ERROR   | [shopee] Session expired.
+19:00:37 | INFO    | [shopee] No new orders found.
+19:00:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+19:00:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+19:00:40 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+19:01:04 | INFO    | [tokopedia] Found 0 orders (status=new)
+19:01:04 | INFO    | [tokopedia] No new orders found.
+19:01:07 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+19:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+19:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+19:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+19:30:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+19:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+19:30:37 | ERROR   | [shopee] Session expired.
+19:30:37 | INFO    | [shopee] No new orders found.
+19:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+19:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+19:30:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+19:31:05 | INFO    | [tokopedia] Found 0 orders (status=new)
+19:31:05 | INFO    | [tokopedia] No new orders found.
+19:31:08 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+20:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+20:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+20:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+20:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+20:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+20:00:37 | ERROR   | [shopee] Session expired.
+20:00:37 | INFO    | [shopee] No new orders found.
+20:00:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+20:00:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+20:00:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+20:00:59 | INFO    | [tokopedia] Found 0 orders (status=new)
+20:00:59 | INFO    | [tokopedia] No new orders found.
+20:01:00 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+20:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+20:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+20:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+20:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+20:30:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+20:30:37 | ERROR   | [shopee] Session expired.
+20:30:37 | INFO    | [shopee] No new orders found.
+20:30:38 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+20:30:38 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+20:30:40 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+20:31:04 | INFO    | [tokopedia] Found 0 orders (status=new)
+20:31:04 | INFO    | [tokopedia] No new orders found.
+20:31:05 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+21:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+21:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+21:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+21:00:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+21:00:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+21:00:30 | ERROR   | Order sync failed for shopee: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller.shopee.co.id/portal/sale/order?status=3
+Call log:
+  - navigating to "https://seller.shopee.co.id/portal/sale/order?status=3", waiting until "load"
+
+21:00:30 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+21:00:30 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+21:00:32 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+21:00:52 | ERROR   | Order sync failed for tokopedia: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller-id.tokopedia.com/order?shop_region=ID&status=new
+Call log:
+  - navigating to "https://seller-id.tokopedia.com/order?shop_region=ID&status=new", waiting until "load"
+
+21:00:52 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  error: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller.shopee.co.id/portal/sale/order?status=3
+Call log:
+  - navigating to "https://seller.shopee.co.id/portal/sale/order?status=3", waiting until "load"
+
+  status: failed
+
+tokopedia:
+  error: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller-id.tokopedia.com/order?shop_region=ID&status=new
+Call log:
+  - navigating to "https://seller-id.tokopedia.com/order?shop_region=ID&status=new", waiting until "load"
+
+  status: failed
+21:30:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+21:30:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+21:30:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+21:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+21:30:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+21:30:29 | ERROR   | Order sync failed for shopee: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller.shopee.co.id/portal/sale/order?status=3
+Call log:
+  - navigating to "https://seller.shopee.co.id/portal/sale/order?status=3", waiting until "load"
+
+21:30:29 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+21:30:29 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+21:30:32 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+21:30:52 | ERROR   | Order sync failed for tokopedia: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller-id.tokopedia.com/order?shop_region=ID&status=new
+Call log:
+  - navigating to "https://seller-id.tokopedia.com/order?shop_region=ID&status=new", waiting until "load"
+
+21:30:52 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  error: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller.shopee.co.id/portal/sale/order?status=3
+Call log:
+  - navigating to "https://seller.shopee.co.id/portal/sale/order?status=3", waiting until "load"
+
+  status: failed
+
+tokopedia:
+  error: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller-id.tokopedia.com/order?shop_region=ID&status=new
+Call log:
+  - navigating to "https://seller-id.tokopedia.com/order?shop_region=ID&status=new", waiting until "load"
+
+  status: failed
+22:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+22:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+22:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+22:00:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+22:00:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+22:00:29 | ERROR   | Order sync failed for shopee: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller.shopee.co.id/portal/sale/order?status=3
+Call log:
+  - navigating to "https://seller.shopee.co.id/portal/sale/order?status=3", waiting until "load"
+
+22:00:30 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+22:00:30 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+22:00:32 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+22:00:52 | ERROR   | Order sync failed for tokopedia: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller-id.tokopedia.com/order?shop_region=ID&status=new
+Call log:
+  - navigating to "https://seller-id.tokopedia.com/order?shop_region=ID&status=new", waiting until "load"
+
+22:00:53 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  error: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller.shopee.co.id/portal/sale/order?status=3
+Call log:
+  - navigating to "https://seller.shopee.co.id/portal/sale/order?status=3", waiting until "load"
+
+  status: failed
+
+tokopedia:
+  error: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://seller-id.tokopedia.com/order?shop_region=ID&status=new
+Call log:
+  - navigating to "https://seller-id.tokopedia.com/order?shop_region=ID&status=new", waiting until "load"
+
+  status: failed
+22:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+22:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+22:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+22:30:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+22:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+22:30:37 | ERROR   | [shopee] Session expired.
+22:30:37 | INFO    | [shopee] No new orders found.
+22:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+22:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+22:30:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+22:31:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+22:31:00 | INFO    | [tokopedia] No new orders found.
+22:31:05 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+23:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+23:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+23:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+23:00:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+23:00:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+23:00:36 | ERROR   | [shopee] Session expired.
+23:00:36 | INFO    | [shopee] No new orders found.
+23:00:36 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+23:00:36 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+23:00:38 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+23:01:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+23:01:00 | INFO    | [tokopedia] No new orders found.
+23:01:05 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+23:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+23:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+23:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+23:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+23:30:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+23:30:36 | ERROR   | [shopee] Session expired.
+23:30:36 | INFO    | [shopee] No new orders found.
+23:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+23:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+23:30:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+23:31:02 | INFO    | [tokopedia] Found 0 orders (status=new)
+23:31:02 | INFO    | [tokopedia] No new orders found.
+23:31:02 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+00:00:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+00:00:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+00:00:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+00:00:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+00:00:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+00:00:36 | ERROR   | [shopee] Session expired.
+00:00:36 | INFO    | [shopee] No new orders found.
+00:00:36 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+00:00:36 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+00:00:38 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+00:01:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+00:01:00 | INFO    | [tokopedia] No new orders found.
+00:01:05 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+00:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+00:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+00:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+00:30:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+00:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+00:30:36 | ERROR   | [shopee] Session expired.
+00:30:36 | INFO    | [shopee] No new orders found.
+00:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+00:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+00:30:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+00:31:08 | INFO    | [tokopedia] Found 0 orders (status=new)
+00:31:08 | INFO    | [tokopedia] No new orders found.
+00:31:09 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+01:00:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+01:00:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+01:00:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+01:00:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+01:00:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+01:00:35 | ERROR   | [shopee] Session expired.
+01:00:35 | INFO    | [shopee] No new orders found.
+01:00:36 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+01:00:36 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+01:00:38 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+01:00:59 | INFO    | [tokopedia] Found 0 orders (status=new)
+01:00:59 | INFO    | [tokopedia] No new orders found.
+01:01:04 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+01:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+01:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+01:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+01:30:11 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+01:30:11 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+01:30:39 | ERROR   | [shopee] Session expired.
+01:30:39 | INFO    | [shopee] No new orders found.
+01:30:39 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+01:30:39 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+01:30:42 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+01:31:27 | INFO    | [tokopedia] Found 0 orders (status=new)
+01:31:27 | INFO    | [tokopedia] No new orders found.
+01:31:29 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+02:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+02:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+02:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+02:00:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+02:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+02:00:41 | ERROR   | [shopee] Session expired.
+02:00:41 | INFO    | [shopee] No new orders found.
+02:00:41 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+02:00:41 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+02:00:43 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+02:01:08 | INFO    | [tokopedia] Found 0 orders (status=new)
+02:01:08 | INFO    | [tokopedia] No new orders found.
+02:01:09 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+02:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+02:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+02:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+02:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+02:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+02:30:36 | ERROR   | [shopee] Session expired.
+02:30:36 | INFO    | [shopee] No new orders found.
+02:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+02:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+02:30:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+02:31:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+02:31:00 | INFO    | [tokopedia] No new orders found.
+02:31:02 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+03:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+03:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+03:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+03:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+03:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+03:00:37 | ERROR   | [shopee] Session expired.
+03:00:37 | INFO    | [shopee] No new orders found.
+03:00:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+03:00:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+03:00:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+03:01:08 | INFO    | [tokopedia] Found 0 orders (status=new)
+03:01:08 | INFO    | [tokopedia] No new orders found.
+03:01:08 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+03:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+03:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+03:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+03:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+03:30:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+03:30:36 | ERROR   | [shopee] Session expired.
+03:30:36 | INFO    | [shopee] No new orders found.
+03:30:36 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+03:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+03:30:38 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+03:31:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+03:31:00 | INFO    | [tokopedia] No new orders found.
+03:31:05 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+04:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+04:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+04:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+04:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+04:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+04:00:43 | ERROR   | [shopee] Session expired.
+04:00:43 | INFO    | [shopee] No new orders found.
+04:00:44 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+04:00:44 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+04:00:46 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+04:01:06 | INFO    | [tokopedia] Found 0 orders (status=new)
+04:01:06 | INFO    | [tokopedia] No new orders found.
+04:01:07 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+04:30:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+04:30:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+04:30:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+04:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+04:30:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+04:30:36 | ERROR   | [shopee] Session expired.
+04:30:36 | INFO    | [shopee] No new orders found.
+04:30:36 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+04:30:36 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+04:30:38 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+04:30:55 | INFO    | [tokopedia] Found 0 orders (status=new)
+04:30:55 | INFO    | [tokopedia] No new orders found.
+04:30:56 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+05:00:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+05:00:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+05:00:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+05:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+05:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+05:00:37 | ERROR   | [shopee] Session expired.
+05:00:37 | INFO    | [shopee] No new orders found.
+05:00:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+05:00:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+05:00:40 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+05:01:03 | INFO    | [tokopedia] Found 0 orders (status=new)
+05:01:03 | INFO    | [tokopedia] No new orders found.
+05:01:08 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+05:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+05:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+05:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+05:30:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+05:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+05:30:36 | ERROR   | [shopee] Session expired.
+05:30:36 | INFO    | [shopee] No new orders found.
+05:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+05:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+05:30:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+05:31:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+05:31:00 | INFO    | [tokopedia] No new orders found.
+05:31:02 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+06:00:04 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+06:00:04 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+06:00:09 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+06:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+06:00:11 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+06:00:37 | ERROR   | [shopee] Session expired.
+06:00:37 | INFO    | [shopee] No new orders found.
+06:00:38 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+06:00:38 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+06:00:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+06:01:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+06:01:00 | INFO    | [tokopedia] No new orders found.
+06:01:06 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+06:30:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+06:30:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+06:30:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+06:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+06:30:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+06:30:36 | ERROR   | [shopee] Session expired.
+06:30:36 | INFO    | [shopee] No new orders found.
+06:30:36 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+06:30:36 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+06:30:38 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+06:30:58 | INFO    | [tokopedia] Found 0 orders (status=new)
+06:30:58 | INFO    | [tokopedia] No new orders found.
+06:30:59 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+07:00:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+07:00:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+07:00:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+07:00:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+07:00:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+07:00:36 | ERROR   | [shopee] Session expired.
+07:00:36 | INFO    | [shopee] No new orders found.
+07:00:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+07:00:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+07:00:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+07:01:01 | INFO    | [tokopedia] Found 0 orders (status=new)
+07:01:01 | INFO    | [tokopedia] No new orders found.
+07:01:07 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+07:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+07:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+07:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+07:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+07:30:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+07:30:38 | ERROR   | [shopee] Session expired.
+07:30:38 | INFO    | [shopee] No new orders found.
+07:30:38 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+07:30:39 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+07:30:41 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+07:30:57 | INFO    | [tokopedia] Found 0 orders (status=new)
+07:30:57 | INFO    | [tokopedia] No new orders found.
+07:30:57 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+08:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+08:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+08:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+08:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+08:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+08:00:36 | ERROR   | [shopee] Session expired.
+08:00:36 | INFO    | [shopee] No new orders found.
+08:00:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+08:00:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+08:00:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+08:00:57 | INFO    | [tokopedia] Found 0 orders (status=new)
+08:00:57 | INFO    | [tokopedia] No new orders found.
+08:00:58 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+08:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+08:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+08:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+08:30:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+08:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+08:30:36 | ERROR   | [shopee] Session expired.
+08:30:36 | INFO    | [shopee] No new orders found.
+08:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+08:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+08:30:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+08:31:05 | INFO    | [tokopedia] Found 0 orders (status=new)
+08:31:05 | INFO    | [tokopedia] No new orders found.
+08:31:06 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+09:00:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+09:00:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+09:00:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+09:00:10 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+09:00:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+09:00:37 | ERROR   | [shopee] Session expired.
+09:00:37 | INFO    | [shopee] No new orders found.
+09:00:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+09:00:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+09:00:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+09:01:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+09:01:00 | INFO    | [tokopedia] No new orders found.
+09:01:02 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+09:30:03 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+09:30:03 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+09:30:08 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+09:30:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+09:30:10 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+09:30:36 | ERROR   | [shopee] Session expired.
+09:30:36 | INFO    | [shopee] No new orders found.
+09:30:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+09:30:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+09:30:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+09:31:00 | INFO    | [tokopedia] Found 0 orders (status=new)
+09:31:00 | INFO    | [tokopedia] No new orders found.
+09:31:06 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+09:33:44 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+09:33:44 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+09:33:49 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+09:33:51 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+09:33:51 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+09:34:19 | ERROR   | [shopee] Session expired.
+09:34:19 | INFO    | [shopee] No new orders found.
+09:34:20 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+09:34:20 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+09:34:22 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+09:34:42 | INFO    | [tokopedia] Found 0 orders (status=new)
+09:34:42 | INFO    | [tokopedia] No new orders found.
+09:34:42 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
+10:00:02 | WARNING | LIVE MODE: Changes will be pushed to real marketplaces!
+10:00:02 | WARNING | dry_run is False. This will modify live marketplace data. Press Ctrl+C within 5 seconds to abort...
+10:00:07 | INFO    | [shopee] Starting order sync: marketplace -> Odoo
+10:00:09 | INFO    | [shopee] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+10:00:09 | INFO    | [shopee] UA override applied to page (HeadlessChrome hidden)
+10:00:37 | ERROR   | [shopee] Session expired.
+10:00:37 | INFO    | [shopee] No new orders found.
+10:00:37 | INFO    | [shopee] Session saved to /home/lutpiero/marketplace-integrator/sessions/shopee_state.json
+10:00:37 | INFO    | [tokopedia] Starting order sync: marketplace -> Odoo
+10:00:39 | INFO    | [tokopedia] Loaded existing session from /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+10:01:02 | INFO    | [tokopedia] Found 0 orders (status=new)
+10:01:02 | INFO    | [tokopedia] No new orders found.
+10:01:03 | INFO    | [tokopedia] Session saved to /home/lutpiero/marketplace-integrator/sessions/tokopedia_state.json
+
+=== Sync Results ===
+
+shopee:
+  synced: 0
+  status: success
+
+tokopedia:
+  synced: 0
+  status: success
