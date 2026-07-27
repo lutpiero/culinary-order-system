@@ -1,5 +1,4 @@
 [build]
-  base    = "web"
   publish = "web"
 
 [build.environment]
