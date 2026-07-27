@@ -1,0 +1,77 @@
+name: Web Frontend CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'web/**'
+      - 'netlify.toml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'web/**'
+  workflow_dispatch:
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Job 1: Validate Web Assets
+  # -----------------------------------------------------------------------
+  validate:
+    name: Validate Web Assets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check required files exist
+        run: |
+          test -f web/index.html  || (echo "Missing web/index.html"  && exit 1)
+          test -f web/styles.css  || (echo "Missing web/styles.css"  && exit 1)
+          test -f web/app.js      || (echo "Missing web/app.js"      && exit 1)
+          echo "All required web files present ✓"
+
+      - name: Validate HTML with html-validate
+        run: |
+          npx --yes html-validate \
+            --config '{"extends":["html-validate:recommended"],"rules":{"no-trailing-whitespace":"off"}}' \
+            web/index.html || true
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/
+          retention-days: 7
+
+  # -----------------------------------------------------------------------
+  # Job 2: Deploy to Netlify (main branch only)
+  # -----------------------------------------------------------------------
+  deploy-netlify:
+    name: Deploy to Netlify
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: './web'
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions – ${{ github.sha }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 5

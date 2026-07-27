@@ -1,16 +1,44 @@
-# Compiled class file
+# ============================================================
+# Culinary Order System – .gitignore
+# ============================================================
+
+# ---- Java / Kotlin ----
 *.class
-
-# Log file
 *.log
-
-# BlueJ files
 *.ctxt
-
-# Mobile Tools for Java (J2ME)
 .mtj.tmp/
+hs_err_pid*
+replay_pid*
 
-# Package Files #
+# ---- Gradle ----
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+local.properties
+
+# ---- Kotlin Gradle plugin ----
+.kotlin/
+
+# ---- Android ----
+*.apk
+*.aab
+*.ap_
+*.dex
+*.jks
+*.keystore
+google-services.json
+/app/release/
+
+# ---- IDE ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+.vscode/
+
+# ---- Archives ----
 *.jar
 *.war
 *.nar
@@ -19,9 +47,11 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# ---- Secrets ----
+keystore.jks
+*.p12
 
-# Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
-.kotlin/
+# ---- Node / Web dev ----
+node_modules/
+.netlify/
+dist/

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Culinary Order</string>
+    <string name="pesanan">Pesanan</string>
+    <string name="menu">Menu</string>
+    <string name="keuangan">Keuangan</string>
+    <string name="qr_meja">QR Meja</string>
+    <string name="tambah_menu">Tambah Menu</string>
+    <string name="edit_menu">Edit Menu</string>
+    <string name="hapus">Hapus</string>
+    <string name="simpan">Simpan</string>
+    <string name="batal">Batal</string>
+    <string name="kembali">Kembali</string>
+    <string name="loading">Memuat...</string>
+    <string name="error_generic">Terjadi kesalahan. Coba lagi.</string>
+    <string name="no_orders">Tidak ada pesanan</string>
+    <string name="total">Total</string>
+    <string name="payment_method">Metode Pembayaran</string>
+    <string name="table_number">Nomor Meja</string>
+    <string name="preparation_time">Waktu Persiapan</string>
+    <string name="available">Tersedia</string>
+    <string name="unavailable">Tidak Tersedia</string>
+</resources>
