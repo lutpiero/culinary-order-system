@@ -1,12 +1,13 @@
 package com.culinary.orderapp.data.remote
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.culinary.orderapp.CulinaryApp
 import com.culinary.orderapp.MainActivity
 import com.culinary.orderapp.R
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -20,41 +21,61 @@ class FirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
+        
+        Log.d(TAG, "Message received from: ${remoteMessage.from}")
+        
+        // Handle data payload
+        if (remoteMessage.data.isNotEmpty()) {
+            Log.d(TAG, "Message data: ${remoteMessage.data}")
+            handleDataMessage(remoteMessage.data)
+        }
+        
+        // Handle notification payload
         val title = remoteMessage.notification?.title ?: remoteMessage.data["title"] ?: "Pesanan Baru"
         val body = remoteMessage.notification?.body ?: remoteMessage.data["body"] ?: "Ada pesanan masuk"
-        showNotification(title, body)
+        val orderId = remoteMessage.data["orderId"]
+        
+        showNotification(title, body, orderId)
     }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // In a production app, send the token to the server to associate with this restaurant.
+        Log.d(TAG, "New FCM token: $token")
+        // TODO: Send token to your server if needed
+    }
+    
+    private fun handleDataMessage(data: Map<String, String>) {
+        val type = data["type"] ?: return
+        
+        when (type) {
+            "new_order" -> {
+                Log.d(TAG, "New order notification received")
+            }
+            "order_update" -> {
+                val status = data["status"]
+                Log.d(TAG, "Order update notification: $status")
+            }
+        }
     }
 
-    private fun showNotification(title: String, body: String) {
-        val channelId = CHANNEL_ID
+    private fun showNotification(title: String, body: String, orderId: String? = null) {
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Pesanan Masuk",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifikasi untuk pesanan baru dari pelanggan"
-            }
-            notificationManager.createNotificationChannel(channel)
-        }
-
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            orderId?.let { putExtra("orderId", it) }
         }
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
+        
+        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, pendingIntentFlags)
 
-        val notification = NotificationCompat.Builder(this, channelId)
+        val notification = NotificationCompat.Builder(this, CulinaryApp.CHANNEL_ORDERS)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
@@ -67,6 +88,6 @@ class FirebaseMessagingService : FirebaseMessagingService() {
     }
 
     companion object {
-        private const val CHANNEL_ID = "culinary_orders"
+        private const val TAG = "FCMService"
     }
 }
