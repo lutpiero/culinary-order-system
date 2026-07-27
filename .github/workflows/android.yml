@@ -25,6 +25,9 @@ on:
 env:
   JAVA_VERSION: '17'
 
+permissions:
+  contents: read
+
 jobs:
   # -----------------------------------------------------------------------
   # Job 1: Build & Test
@@ -32,6 +35,8 @@ jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -75,6 +80,8 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository

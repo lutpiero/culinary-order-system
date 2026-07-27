@@ -483,9 +483,9 @@ function showSuccess(orderId, tableNumber, paymentMethod) {
   };
 
   document.getElementById("successOrderInfo").innerHTML = `
-    <div class="order-info-row"><span>No. Pesanan</span><strong>#${orderId.slice(-6).toUpperCase()}</strong></div>
-    <div class="order-info-row"><span>Meja</span><strong>${tableNumber}</strong></div>
-    <div class="order-info-row"><span>Pembayaran</span><strong>${paymentLabels[paymentMethod] || paymentMethod}</strong></div>
+    <div class="order-info-row"><span>No. Pesanan</span><strong>#${escHtml(orderId.slice(-6).toUpperCase())}</strong></div>
+    <div class="order-info-row"><span>Meja</span><strong>${escHtml(String(tableNumber))}</strong></div>
+    <div class="order-info-row"><span>Pembayaran</span><strong>${escHtml(paymentLabels[paymentMethod] || paymentMethod)}</strong></div>
   `;
 
   document.getElementById("checkoutPage").style.display = "none";
