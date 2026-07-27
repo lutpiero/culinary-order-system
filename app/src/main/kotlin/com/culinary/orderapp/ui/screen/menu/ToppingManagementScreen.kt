@@ -1,7 +1,9 @@
 package com.culinary.orderapp.ui.screen.menu
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -13,12 +15,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.culinary.orderapp.domain.model.ToppingGroup
-import com.culinary.orderapp.ui.component.StatusBadge
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -136,6 +138,29 @@ fun ToppingManagementScreen(
     }
 }
 
+
+@Composable
+private fun SimpleBadge(
+    text: String,
+    backgroundColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(backgroundColor)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+
 @Composable
 private fun ToppingGroupCard(
     group: ToppingGroup,
@@ -164,14 +189,14 @@ private fun ToppingGroupCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatusBadge(
+                        SimpleBadge(
                             text = if (group.type.name == "SINGLE_SELECT") "Pilih Satu" else "Pilih Banyak",
-                            color = MaterialTheme.colorScheme.primary
+                            backgroundColor = MaterialTheme.colorScheme.primary
                         )
                         if (group.isRequired) {
-                            StatusBadge(
+                            SimpleBadge(
                                 text = "Wajib",
-                                color = MaterialTheme.colorScheme.error
+                                backgroundColor = MaterialTheme.colorScheme.error
                             )
                         }
                     }
