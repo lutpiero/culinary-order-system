@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.material3.MaterialTheme
 import com.culinary.orderapp.ui.navigation.AppNavHost
 import com.culinary.orderapp.ui.navigation.Screen
 import com.culinary.orderapp.ui.navigation.bottomNavItems
