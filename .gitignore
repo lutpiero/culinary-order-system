@@ -32,7 +32,6 @@ google-services.json
 .vscode/
 
 # ---- Archives ----
-*.jar
 *.war
 *.nar
 *.ear
