@@ -73,7 +73,9 @@ fun OrdersScreen(
                 Tab(
                     selected = uiState.selectedTab == index,
                     onClick = { viewModel.selectTab(index) },
-                    text = { Text(title) }
+                    text = { Text(title) },
+                    selectedContentColor = MaterialTheme.colorScheme.primary, 
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
