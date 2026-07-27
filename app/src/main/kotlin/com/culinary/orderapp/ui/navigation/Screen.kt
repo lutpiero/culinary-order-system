@@ -25,6 +25,12 @@ sealed class Screen(val route: String) {
         fun createRoute(itemId: String = "new") = "menu_item/$itemId"
     }
     data object CategoryManagement : Screen("categories")
+    data object ToppingManagement : Screen("topping_management/{menuItemId}/{menuItemName}") {
+        fun createRoute(menuItemId: String, menuItemName: String) = "topping_management/$menuItemId/$menuItemName"
+    }
+    data object AddEditToppingGroup : Screen("topping_group/{menuItemId}/{toppingGroupId}") {
+        fun createRoute(menuItemId: String, toppingGroupId: String = "new") = "topping_group/$menuItemId/$toppingGroupId"
+    }
 }
 
 /**

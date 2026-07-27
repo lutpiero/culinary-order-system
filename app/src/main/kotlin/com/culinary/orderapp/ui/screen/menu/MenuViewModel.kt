@@ -134,4 +134,30 @@ class MenuViewModel @Inject constructor(
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(successMessage = null, errorMessage = null)
     }
+
+    fun saveToppingGroup(menuItemId: String, toppingGroup: ToppingGroup, isNew: Boolean) {
+        viewModelScope.launch {
+            val menuItem = _uiState.value.menuItems.find { it.id == menuItemId } ?: return@launch
+            
+            val updatedGroups = if (isNew) {
+                menuItem.toppingGroups + toppingGroup
+            } else {
+                menuItem.toppingGroups.map { 
+                    if (it.id == toppingGroup.id) toppingGroup else it 
+                }
+            }
+            
+            val updatedItem = menuItem.copy(toppingGroups = updatedGroups)
+            saveMenuItem(updatedItem)
+        }
+    }
+
+    fun deleteToppingGroup(menuItemId: String, toppingGroupId: String) {
+        viewModelScope.launch {
+            val menuItem = _uiState.value.menuItems.find { it.id == menuItemId } ?: return@launch
+            val updatedGroups = menuItem.toppingGroups.filter { it.id != toppingGroupId }
+            val updatedItem = menuItem.copy(toppingGroups = updatedGroups)
+            saveMenuItem(updatedItem)
+        }
+    }
 }

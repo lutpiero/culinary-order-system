@@ -5,6 +5,7 @@ import com.culinary.orderapp.domain.model.MenuItem
 import com.culinary.orderapp.domain.model.Topping
 import com.culinary.orderapp.domain.model.ToppingGroup
 import com.culinary.orderapp.domain.model.ToppingType
+import com.google.firebase.firestore.PropertyName
 
 /**
  * Firestore DTO for a Category document.
@@ -14,6 +15,7 @@ data class CategoryDto(
     val id: String = "",
     val name: String = "",
     val displayOrder: Int = 0,
+    @PropertyName("isActive")
     val isActive: Boolean = true
 ) {
     fun toDomain() = Category(
@@ -41,7 +43,9 @@ data class ToppingDto(
     val name: String = "",
     val additionalPrice: Long = 0L,
     val type: String = ToppingType.SINGLE_SELECT.name,
+    @PropertyName("isRequired")
     val isRequired: Boolean = false,
+    @PropertyName("isAvailable")
     val isAvailable: Boolean = true
 ) {
     fun toDomain() = Topping(
@@ -72,6 +76,7 @@ data class ToppingGroupDto(
     val id: String = "",
     val name: String = "",
     val type: String = ToppingType.SINGLE_SELECT.name,
+    @PropertyName("isRequired")
     val isRequired: Boolean = false,
     val toppings: List<ToppingDto> = emptyList()
 ) {
@@ -105,6 +110,7 @@ data class MenuItemDto(
     val categoryId: String = "",
     val categoryName: String = "",
     val imageUrl: String = "",
+    @PropertyName("isAvailable")
     val isAvailable: Boolean = true,
     val toppingGroups: List<ToppingGroupDto> = emptyList(),
     val preparationTimeMinutes: Int = 10

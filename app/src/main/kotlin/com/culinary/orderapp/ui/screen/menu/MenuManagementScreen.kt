@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,6 +55,7 @@ fun MenuManagementScreen(
     onAddItem: () -> Unit,
     onEditItem: (String) -> Unit,
     onManageCategories: () -> Unit,
+    onManageToppings: (String, String) -> Unit = { _, _ -> },
     viewModel: MenuViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -136,7 +138,8 @@ fun MenuManagementScreen(
                                 item = item,
                                 onEdit = { onEditItem(item.id) },
                                 onDelete = { viewModel.deleteItem(item.id) },
-                                onToggleAvailability = { viewModel.toggleAvailability(item.id, it) }
+                                onToggleAvailability = { viewModel.toggleAvailability(item.id, it) },
+                                onManageToppings = { onManageToppings(item.id, item.name) }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(80.dp)) }
@@ -152,7 +155,8 @@ fun MenuItemCard(
     item: MenuItem,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onToggleAvailability: (Boolean) -> Unit
+    onToggleAvailability: (Boolean) -> Unit,
+    onManageToppings: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -198,6 +202,14 @@ fun MenuItemCard(
                     onCheckedChange = onToggleAvailability
                 )
                 Row {
+                    IconButton(onClick = onManageToppings, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Filled.Restaurant,
+                            contentDescription = "Topping",
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                     IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
                         Icon(
                             Icons.Filled.Edit,

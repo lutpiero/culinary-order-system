@@ -9,8 +9,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.culinary.orderapp.ui.screen.finance.FinanceScreen
 import com.culinary.orderapp.ui.screen.menu.AddEditMenuItemScreen
+import com.culinary.orderapp.ui.screen.menu.AddEditToppingGroupScreen
 import com.culinary.orderapp.ui.screen.menu.CategoryManagementScreen
 import com.culinary.orderapp.ui.screen.menu.MenuManagementScreen
+import com.culinary.orderapp.ui.screen.menu.ToppingManagementScreen
 import com.culinary.orderapp.ui.screen.orders.OrderDetailScreen
 import com.culinary.orderapp.ui.screen.orders.OrdersScreen
 import com.culinary.orderapp.ui.screen.qrcode.QrCodeScreen
@@ -49,6 +51,9 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
                 },
                 onManageCategories = {
                     navController.navigate(Screen.CategoryManagement.route)
+                },
+                onManageToppings = { menuItemId, menuItemName ->
+                    navController.navigate(Screen.ToppingManagement.createRoute(menuItemId, menuItemName))
                 }
             )
         }
@@ -66,6 +71,41 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
 
         composable(Screen.CategoryManagement.route) {
             CategoryManagementScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.ToppingManagement.route,
+            arguments = listOf(
+                navArgument("menuItemId") { type = NavType.StringType },
+                navArgument("menuItemName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val menuItemId = backStackEntry.arguments?.getString("menuItemId") ?: return@composable
+            val menuItemName = backStackEntry.arguments?.getString("menuItemName") ?: ""
+            ToppingManagementScreen(
+                menuItemId = menuItemId,
+                menuItemName = menuItemName,
+                onBack = { navController.popBackStack() },
+                onEditToppingGroup = { toppingGroupId ->
+                    navController.navigate(Screen.AddEditToppingGroup.createRoute(menuItemId, toppingGroupId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.AddEditToppingGroup.route,
+            arguments = listOf(
+                navArgument("menuItemId") { type = NavType.StringType },
+                navArgument("toppingGroupId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val menuItemId = backStackEntry.arguments?.getString("menuItemId") ?: return@composable
+            val toppingGroupId = backStackEntry.arguments?.getString("toppingGroupId")
+            AddEditToppingGroupScreen(
+                menuItemId = menuItemId,
+                toppingGroupId = toppingGroupId,
                 onBack = { navController.popBackStack() }
             )
         }
