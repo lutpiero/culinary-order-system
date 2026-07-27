@@ -10,13 +10,6 @@
 hs_err_pid*
 replay_pid*
 
-# ---- Gradle ----
-.gradle/
-**/build/
-!gradle/wrapper/gradle-wrapper.jar
-!gradle/wrapper/gradle-wrapper.properties
-local.properties
-
 # ---- Kotlin Gradle plugin ----
 .kotlin/
 
@@ -55,3 +48,10 @@ keystore.jks
 node_modules/
 .netlify/
 dist/
+
+# ---- Gradle ----
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+local.properties
