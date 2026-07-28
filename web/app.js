@@ -155,7 +155,7 @@ function renderMenuCard(item) {
 
   // Check availability: must be available AND have stock (if stock is tracked)
   const hasStock = item.stock === null || item.stock === undefined || item.stock > 0;
-  const isAvailable = item.isAvailable && hasStock;
+  const isAvailable = item.available && hasStock;
   
   const unavailableClass = !isAvailable ? " menu-card-unavailable" : "";
   const actionHtml = isAvailable
