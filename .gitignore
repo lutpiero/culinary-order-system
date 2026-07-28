@@ -9,3 +9,4 @@ data/*.log
 dist/
 .venv/
 .ruff_cache/
+logs/cron.log
