@@ -479,6 +479,11 @@ class ShopeeAdapter(BaseMarketplace):
     async def download_shipping_label(self, order_id: str, output_dir: Path) -> Path | None:
         page = await self._get_page()
 
+        try:
+            await page.goto(f"{self.config.seller_center_url}/portal/sale", timeout=15000)
+        except Exception:
+            pass
+
         if await self._check_login_needed(page):
             logger.error("[shopee] Session expired, cannot download label.")
             return None
