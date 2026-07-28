@@ -449,25 +449,67 @@ class ShopeeAdapter(BaseMarketplace):
 
         return orders
 
+    async def _get_spc_cds(self, page) -> str:
+        result = await page.evaluate("""() => {
+            const links = document.querySelectorAll('link[href*="SPC_CDS"]');
+            if (links.length) return "";
+            const scripts = document.querySelectorAll('script');
+            for (const s of scripts) {
+                if (s.src && s.src.includes("SPC_CDS")) {
+                    const m = s.src.match(/SPC_CDS=([a-f0-9-]+)/);
+                    if (m) return m[1];
+                }
+            }
+            return "";
+        }""")
+        return result or ""
+
     async def _fetch_order_detail(self, page, order_id: str) -> dict | None:
         try:
+            spc_cds = await self._get_spc_cds(page)
+
             result = await page.evaluate(
                 """async (args) => {
                     try {
-                        const r = await fetch("/api/v3/order/get_order_detail", {
-                            method: "POST",
-                            headers: {"Content-Type": "application/json"},
-                            body: JSON.stringify({
-                                order_id: parseInt(args.order_id),
-                                need_user_confirm: false,
-                            }),
-                        });
-                        return await r.json();
+                        const url = "/api/v3/order/get_one_order?order_id=" + args.order_id
+                            + "&SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2";
+                        const r = await fetch(url);
+                        const data = await r.json();
+                        if (data.code !== 0) return {code: data.code, message: data.message || "api error"};
+
+                        const pkgUrl = "/api/v3/order/get_package?order_id=" + args.order_id
+                            + "&SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2";
+                        const pkgR = await fetch(pkgUrl);
+                        const pkgData = await pkgR.json();
+
+                        return {
+                            code: 0,
+                            data: {
+                                order_data: {
+                                    shipping_address: {
+                                        name: data.data.buyer_name || "",
+                                        phone: data.data.buyer_phone || "",
+                                        address: (data.data.shipping_address || "").split(",").slice(0, -4).join(",").trim(),
+                                        city: (data.data.shipping_address || "").split(",").slice(-4, -3)[0] || "",
+                                        state: (data.data.shipping_address || "").split(",").slice(-3, -2)[0] || "",
+                                    },
+                                    logistics: {
+                                        logistics_channel_name: data.data.actual_carrier || "",
+                                        tracking_number: (pkgData.data?.order_info?.package_list?.[0]?.short_code) || "",
+                                        estimated_delivery_time: "",
+                                    },
+                                    payment: {
+                                        shipping_fee: parseInt(data.data.shipping_fee || "0"),
+                                    },
+                                    buyer_username: data.data.buyer_name || "",
+                                }
+                            }
+                        };
                     } catch (e) {
                         return {code: -1, message: e.message};
                     }
                 }""",
-                {"order_id": order_id},
+                {"order_id": order_id, "spc_cds": spc_cds},
             )
             if result and result.get("code") == 0:
                 return result
@@ -480,7 +522,7 @@ class ShopeeAdapter(BaseMarketplace):
         page = await self._get_page()
 
         try:
-            await page.goto(f"{self.config.seller_center_url}/portal/sale", timeout=15000)
+            await page.goto(f"{self.config.seller_center_url}/portal/sale/order/{order_id}", timeout=15000)
         except Exception:
             pass
 
@@ -489,44 +531,124 @@ class ShopeeAdapter(BaseMarketplace):
             return None
 
         try:
-            result = await page.evaluate(
+            spc_cds = await self._get_spc_cds(page)
+
+            order_info = await page.evaluate(
                 """async (args) => {
                     try {
-                        const r = await fetch("/api/v3/order/download_waybill", {
+                        const url = "/api/v3/order/get_one_order?order_id=" + args.order_id
+                            + "&SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2";
+                        const r = await fetch(url);
+                        const data = await r.json();
+                        if (data.code !== 0) return {error: "get_one_order: " + (data.message || "api error")};
+                        return {
+                            order_sn: data.data.order_sn,
+                            status: data.data.status,
+                            status_label: data.data.status_info?.status || "",
+                            actual_carrier: data.data.actual_carrier || "",
+                        };
+                    } catch (e) { return {error: e.message}; }
+                }""",
+                {"order_id": order_id, "spc_cds": spc_cds},
+            )
+
+            if not order_info or order_info.get("error"):
+                logger.warning(f"[shopee] Failed to get order info for {order_id}: {order_info.get('error', 'unknown')}")
+                return None
+
+            order_sn = order_info.get("order_sn", "")
+            if not order_sn:
+                logger.warning(f"[shopee] No order_sn found for {order_id}")
+                return None
+
+            status = order_info.get("status", 0)
+            if status < 3:
+                logger.warning(
+                    f"[shopee] Order {order_id} ({order_sn}) has status "
+                    f"'{order_info.get('status_label', status)}' — not yet shipped, no waybill available."
+                )
+                return None
+
+            waybill_result = await page.evaluate(
+                """async (args) => {
+                    try {
+                        const url = "/api/v3/logistics/get_waybill_format?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2";
+                        const r = await fetch(url, {
+                            method: "POST",
+                            headers: {"Content-Type": "application/json"},
+                            body: JSON.stringify({order_list: [{order_sn: args.order_sn}]})
+                        });
+                        const data = await r.json();
+                        if (data.code !== 0) return {error: "get_waybill_format: " + (data.message || "api error")};
+                        return data.data;
+                    } catch (e) { return {error: e.message}; }
+                }""",
+                {"order_sn": order_sn, "spc_cds": spc_cds},
+            )
+
+            if not waybill_result or waybill_result.get("error"):
+                msg = waybill_result.get("error", "unknown") if waybill_result else "no response"
+                logger.warning(f"[shopee] Waybill format check failed for {order_sn}: {msg}")
+                return None
+
+            waybill_list = waybill_result.get("list", [])
+            if not waybill_list:
+                logger.warning(
+                    f"[shopee] No waybills available for {order_sn} "
+                    f"(status={order_info.get('status_label', status)}, carrier={order_info.get('actual_carrier', '')}). "
+                    "Waybill may not be generated yet."
+                )
+                return None
+
+            download_result = await page.evaluate(
+                """async (args) => {
+                    try {
+                        const r = await fetch("/api/v3/logistics/create_sd_jobs?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2", {
                             method: "POST",
                             headers: {"Content-Type": "application/json"},
                             body: JSON.stringify({
-                                order_id: parseInt(args.order_id),
-                            }),
+                                order_list: [{order_sn: args.order_sn}],
+                                waybill_type: args.waybill_type || "NORMAL"
+                            })
                         });
-                        if (!r.ok) {
-                            return {code: -1, message: "HTTP " + r.status};
-                        }
-                        const contentType = r.headers.get("content-type") || "";
-                        if (contentType.includes("application/json")) {
-                            const json = await r.json();
-                            return {code: json.code || -1, message: json.message || "json response", data: json.data};
-                        }
-                        const buf = await r.arrayBuffer();
+                        const data = await r.json();
+                        if (data.code !== 0) return {error: "create_sd_jobs: " + (data.message || "api error")};
+                        const jobId = data.data?.job_id;
+                        if (!jobId) return {error: "no job_id returned"};
+
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+
+                        const jobUrl = "/api/v3/logistics/get_sd_job?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&job_id=" + jobId;
+                        const jobR = await fetch(jobUrl);
+                        const jobData = await jobR.json();
+                        if (jobData.code !== 0) return {error: "get_sd_job: " + (jobData.message || "api error")};
+
+                        const fileId = jobData.data?.file_id;
+                        if (!fileId) return {error: "job not ready yet, file_id missing"};
+
+                        const dlUrl = "/api/v3/logistics/download_sd_job?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&file_id=" + fileId;
+                        const dlR = await fetch(dlUrl);
+                        if (!dlR.ok) return {code: -1, message: "download HTTP " + dlR.status};
+
+                        const contentType = dlR.headers.get("content-type") || "";
+                        const buf = await dlR.arrayBuffer();
                         const bytes = new Uint8Array(buf);
                         let binary = "";
                         for (let i = 0; i < bytes.byteLength; i++) {
                             binary += String.fromCharCode(bytes[i]);
                         }
                         return {code: 0, data: btoa(binary), content_type: contentType};
-                    } catch (e) {
-                        return {code: -1, message: e.message};
-                    }
+                    } catch (e) { return {code: -1, message: e.message}; }
                 }""",
-                {"order_id": order_id},
+                {"order_sn": order_sn, "spc_cds": spc_cds, "waybill_type": waybill_result.get("waybill_type", "NORMAL")},
             )
 
-            if not result or result.get("code") != 0:
-                msg = result.get("message", "unknown") if result else "no response"
+            if not download_result or download_result.get("code") != 0:
+                msg = download_result.get("message", "unknown") if download_result else "no response"
                 logger.warning(f"[shopee] Label download failed for {order_id}: {msg}")
                 return None
 
-            pdf_b64 = result.get("data", "")
+            pdf_b64 = download_result.get("data", "")
             if not pdf_b64:
                 logger.warning(f"[shopee] No PDF data returned for order {order_id}")
                 return None
