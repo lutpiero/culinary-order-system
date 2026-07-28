@@ -36,16 +36,26 @@ fun AddEditToppingGroupScreen(
     val menuItem = uiState.menuItems.find { it.id == menuItemId }
     
     val isNew = toppingGroupId?.startsWith("new_") == true
-    val existingGroup = if (!isNew) {
-        menuItem?.toppingGroups?.find { it.id == toppingGroupId }
-    } else null
 
-    var groupName by remember(toppingGroupId) { mutableStateOf(existingGroup?.name ?: "") }
-    var isRequired by remember(toppingGroupId) { mutableStateOf(existingGroup?.isRequired ?: false) }
-    var toppingType by remember(toppingGroupId) { mutableStateOf(existingGroup?.type ?: ToppingType.SINGLE_SELECT) }
-    var toppings by remember(toppingGroupId) { mutableStateOf(existingGroup?.toppings ?: emptyList()) }
+    var groupName by remember { mutableStateOf("") }
+    var isRequired by remember { mutableStateOf(false) }
+    var toppingType by remember { mutableStateOf(ToppingType.SINGLE_SELECT) }
+    var toppings by remember { mutableStateOf<List<Topping>>(emptyList()) }
     var showAddToppingDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Load existing group data when available
+    LaunchedEffect(toppingGroupId, menuItem) {
+        if (!isNew && menuItem != null) {
+            val existingGroup = menuItem.toppingGroups.find { it.id == toppingGroupId }
+            existingGroup?.let { group ->
+                groupName = group.name
+                isRequired = group.isRequired
+                toppingType = group.type
+                toppings = group.toppings
+            }
+        }
+    }
 
     Scaffold(
         topBar = {

@@ -30,9 +30,11 @@ const state = {
   categories:  [],
   menuItems:   [],
   cart:        [],    // [{ menuItem, quantity, selectedToppings, notes, subtotal }]
+  orders:      [],    // User's order history for this table
   activeCategory: "all",
   isLoading:   true,
-  db:          null
+  db:          null,
+  ordersListener: null
 };
 
 // ---------------------------------------------------------------------------
@@ -42,6 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   parseTableFromUrl();
   await initFirebase();
   await loadMenu();
+  await loadOrderHistory();
 });
 
 function parseTableFromUrl() {
@@ -56,13 +59,13 @@ async function initFirebase() {
     const { initializeApp } = await import(
       "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js"
     );
-    const { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp } = await import(
+    const { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy } = await import(
       "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js"
     );
     const app = initializeApp(FIREBASE_CONFIG);
     state.db = getFirestore(app);
     // Expose Firestore helpers on state for later use
-    state._firestore = { collection, getDocs, query, where, addDoc, serverTimestamp };
+    state._firestore = { collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy };
   } catch (err) {
     console.error("Firebase init failed:", err);
     showError("Tidak dapat terhubung ke server.");
@@ -100,6 +103,69 @@ async function loadMenu() {
 
 // ---------------------------------------------------------------------------
 // Render
+
+// ---------------------------------------------------------------------------
+// Load Order History
+// ---------------------------------------------------------------------------
+async function loadOrderHistory() {
+  try {
+    if (!state.db) return;
+    const { collection, query, where, onSnapshot, orderBy } = state._firestore;
+
+    // Listen to orders for this table (excluding cancelled)
+    const ordersQuery = query(
+      collection(state.db, "orders"),
+      where("tableNumber", "==", state.tableNumber),
+      orderBy("createdAt", "desc")
+    );
+
+    // Clean up previous listener if exists
+    if (state.ordersListener) {
+      state.ordersListener();
+    }
+
+    // Set up real-time listener
+    state.ordersListener = onSnapshot(ordersQuery, (snapshot) => {
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      state.orders = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(order => {
+          // Exclude cancelled orders
+          if (order.status === "CANCELLED") return false;
+          
+          // Keep completed orders only if within last 24 hours
+          if (order.status === "COMPLETED") {
+            const orderDate = order.updatedAt?.toDate ? order.updatedAt.toDate() : 
+                            order.createdAt?.toDate ? order.createdAt.toDate() : new Date(0);
+            return orderDate >= oneDayAgo;
+          }
+          
+          // Keep all other statuses (PENDING, PREPARING, READY)
+          return true;
+        });
+      
+      updateOrderHistoryUI();
+    }, (error) => {
+      console.error("Error listening to orders:", error);
+    });
+  } catch (err) {
+    console.error("loadOrderHistory error:", err);
+  }
+}
+
+function updateOrderHistoryUI() {
+  const badge = document.getElementById("orderHistoryBadge");
+  if (badge) {
+    badge.textContent = state.orders.length;
+    badge.style.display = state.orders.length > 0 ? "flex" : "none";
+  }
+}
+
 // ---------------------------------------------------------------------------
 function renderCategoryTabs() {
   const tabs = document.getElementById("categoryTabs");
@@ -400,6 +466,80 @@ function toggleCart() {
 }
 
 function closeCart() {
+
+// ---------------------------------------------------------------------------
+// Order History
+// ---------------------------------------------------------------------------
+function toggleOrderHistory() {
+  const drawer = document.getElementById("orderHistoryDrawer");
+  const overlay = document.getElementById("overlay");
+  const isOpen = drawer.classList.contains("open");
+  if (isOpen) {
+    closeOrderHistory();
+  } else {
+    renderOrderHistory();
+    drawer.classList.add("open");
+    overlay.style.display = "block";
+    document.body.style.overflow = "hidden";
+  }
+}
+
+function closeOrderHistory() {
+  document.getElementById("orderHistoryDrawer").classList.remove("open");
+  document.getElementById("overlay").style.display = "none";
+  document.body.style.overflow = "";
+}
+
+function renderOrderHistory() {
+  const body = document.getElementById("orderHistoryBody");
+  
+  if (state.orders.length === 0) {
+    body.innerHTML = `<p class="cart-empty">Belum ada pesanan</p>`;
+    return;
+  }
+
+  body.innerHTML = state.orders.map(order => {
+    const statusLabels = {
+      PENDING: { text: "Menunggu", color: "#FF9800" },
+      PREPARING: { text: "Diproses", color: "#2196F3" },
+      READY: { text: "Siap", color: "#4CAF50" },
+      COMPLETED: { text: "Selesai", color: "#9E9E9E" },
+      CANCELLED: { text: "Dibatalkan", color: "#F44336" }
+    };
+    
+    const status = statusLabels[order.status] || statusLabels.PENDING;
+    const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date();
+    const timeStr = orderDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    
+    const itemsList = (order.items || []).map(item => 
+      `<div style="font-size: 14px; color: #666; margin-top: 4px;">
+        ${item.quantity}× ${escHtml(item.menuItemName)}
+      </div>`
+    ).join("");
+    
+    const totalAmount = (order.items || []).reduce((sum, item) => {
+      const toppingTotal = (item.selectedToppings || []).reduce((s, t) => s + (t.additionalPrice || 0), 0);
+      return sum + ((item.unitPrice + toppingTotal) * item.quantity);
+    }, 0);
+    
+    return `
+      <div class="cart-item" style="border-left: 3px solid ${status.color}">
+        <div class="cart-item-info">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div class="cart-item-name">#${escHtml(order.id.slice(-6).toUpperCase())}</div>
+            <span style="background: ${status.color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500;">
+              ${status.text}
+            </span>
+          </div>
+          <div style="font-size: 13px; color: #999; margin-bottom: 8px;">${timeStr}</div>
+          ${itemsList}
+          ${order.estimatedReadyMinutes ? `<div style="font-size: 13px; color: #FF9800; margin-top: 8px; font-weight: 500;">⏱️ Estimasi ${order.estimatedReadyMinutes} menit</div>` : ""}
+        </div>
+        <div class="cart-item-price">${formatRupiah(totalAmount)}</div>
+      </div>`;
+  }).join("");
+}
+
   document.getElementById("cartDrawer").classList.remove("open");
   document.getElementById("overlay").style.display = "none";
   document.body.style.overflow = "";
@@ -464,13 +604,46 @@ async function placeOrder() {
       estimatedReadyMinutes: 15
     };
 
-    const { collection, addDoc } = state._firestore;
-    const docRef = await addDoc(collection(state.db, "orders"), order);
+    // Import transaction functions
+    const { runTransaction, doc } = await import(
+      "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js"
+    );
 
-    showSuccess(docRef.id, state.tableNumber, paymentMethod);
+    // Use transaction to check and update stock atomically
+    const orderId = await runTransaction(state.db, async (transaction) => {
+      // Check and update stock for each item
+      for (const item of orderItems) {
+        const menuItemRef = doc(state.db, "menuItems", item.menuItemId);
+        const menuItemDoc = await transaction.get(menuItemRef);
+        
+        if (!menuItemDoc.exists()) {
+          throw new Error(`Menu item ${item.menuItemName} tidak ditemukan`);
+        }
+        
+        const menuData = menuItemDoc.data();
+        const currentStock = menuData.stock;
+        
+        // If stock is tracked (not null/undefined), check and decrease it
+        if (currentStock !== null && currentStock !== undefined) {
+          if (currentStock < item.quantity) {
+            throw new Error(`Stok ${item.menuItemName} tidak cukup. Tersedia: ${currentStock}, Diminta: ${item.quantity}`);
+          }
+          
+          const newStock = currentStock - item.quantity;
+          transaction.update(menuItemRef, { stock: newStock });
+        }
+      }
+      
+      // Create the order
+      const orderRef = doc(state.db, "orders", generateId());
+      transaction.set(orderRef, order);
+      return orderRef.id;
+    });
+
+    showSuccess(orderId, state.tableNumber, paymentMethod);
   } catch (err) {
     console.error("placeOrder error:", err);
-    alert("Gagal mengirim pesanan. Coba lagi.");
+    alert(err.message || "Gagal mengirim pesanan. Coba lagi.");
     btn.disabled = false;
     btn.textContent = "Pesan Sekarang";
   }
@@ -496,6 +669,7 @@ function showSuccess(orderId, tableNumber, paymentMethod) {
   document.getElementById("successPage").style.display = "block";
   state.cart = [];
   updateCartUI();
+  // Order history will automatically update via real-time listener
 }
 
 function resetApp() {
