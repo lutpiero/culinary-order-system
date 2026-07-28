@@ -602,17 +602,13 @@ class ShopeeAdapter(BaseMarketplace):
 
             clicked = await page.evaluate(
                 """(args) => {
-                    const buttons = document.querySelectorAll('button');
-                    for (const btn of buttons) {
-                        if (btn.textContent.trim() !== 'Cetak Label') continue;
-                        let el = btn;
-                        for (let i = 0; i < 10; i++) {
-                            el = el.parentElement;
-                            if (!el) break;
-                            if ((el.textContent || '').includes(args.order_sn)) {
-                                btn.click();
-                                return true;
-                            }
+                    const cards = document.querySelectorAll('a.order-card');
+                    for (const card of cards) {
+                        if (!(card.textContent || '').includes(args.order_sn)) continue;
+                        const btn = card.querySelector('button');
+                        if (btn && btn.textContent.trim() === 'Cetak Label') {
+                            btn.click();
+                            return true;
                         }
                     }
                     return false;
