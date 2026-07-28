@@ -562,10 +562,12 @@ class ShopeeAdapter(BaseMarketplace):
                 return None
 
             status = order_info.get("status", 0)
+            carrier = order_info.get("actual_carrier", "?")
             if status < 3:
                 logger.warning(
-                    f"[shopee] Order {order_id} ({order_sn}) has status "
-                    f"'{order_info.get('status_label', status)}' — not yet shipped, no waybill available."
+                    f"[shopee] Order {order_id} ({order_sn}) status "
+                    f"'{order_info.get('status_label', status)}', carrier={carrier} — "
+                    "no waybill available (not yet shipped or courier has no printable label)."
                 )
                 return None
 
