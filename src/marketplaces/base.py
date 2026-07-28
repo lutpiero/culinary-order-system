@@ -63,13 +63,19 @@ class BaseMarketplace(ABC):
         if self._context:
             return self._context
         self._playwright = await async_playwright().start()
-        self._browser = await self._playwright.chromium.launch(headless=headless)
+        self._browser = await self._playwright.chromium.launch(
+            headless=headless,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
         session_file = self._session_path()
         if session_file.exists():
-            self._context = await self._browser.new_context(storage_state=str(session_file))
+            self._context = await self._browser.new_context(
+                storage_state=str(session_file),
+                viewport={"width": 1920, "height": 1080},
+            )
             logger.info(f"[{self.name}] Loaded existing session from {session_file}")
         else:
-            self._context = await self._browser.new_context()
+            self._context = await self._browser.new_context(viewport={"width": 1920, "height": 1080})
             logger.warning(f"[{self.name}] No session file found at {session_file}. Run 'login' first.")
         return self._context
 

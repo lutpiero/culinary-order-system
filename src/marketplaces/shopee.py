@@ -7,6 +7,7 @@ from pathlib import Path
 
 from loguru import logger
 from playwright.async_api import Page
+from playwright_stealth import Stealth
 
 from src.marketplaces.base import BaseMarketplace, MarketOrder, MarketProduct
 
@@ -35,20 +36,14 @@ class ShopeeAdapter(BaseMarketplace):
                         "(KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36",
                     },
                 )
-                await page.add_init_script("""
-                    Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                    Object.defineProperty(navigator, 'languages', {get: () => ['id-ID', 'id', 'en-US', 'en']});
-                    Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-                    window.chrome = {runtime: {}};
-                    Object.defineProperty(navigator, 'maxTouchPoints', {get: () => 0});
-                    const originalQuery = window.navigator.permissions.query;
-                    window.navigator.permissions.query = (parameters) => (
-                        parameters.name === 'notifications' ?
-                            Promise.resolve({ state: Notification.permission }) :
-                            originalQuery(parameters)
-                    );
-                """)
-                logger.info("[shopee] Stealth mode applied (UA + webdriver + plugins)")
+                stealth = Stealth(
+                    navigator_languages_override=("id-ID", "id", "en-US", "en"),
+                    navigator_vendor_override="Google Inc.",
+                    chrome_runtime=True,
+                    navigator_user_agent=False,
+                )
+                await stealth.apply_stealth_async(page)
+                logger.info("[shopee] Stealth mode applied (playwright-stealth)")
             except Exception as e:
                 logger.warning(f"[shopee] Stealth override failed: {e}")
         return page
@@ -546,6 +541,8 @@ class ShopeeAdapter(BaseMarketplace):
                             status: data.data.status,
                             status_label: data.data.status_info?.status || "",
                             actual_carrier: data.data.actual_carrier || "",
+                            shop_id: data.data.shop_id || 0,
+                            fulfillment_channel_id: data.data.fulfillment_channel_id || 0,
                         };
                     } catch (e) { return {error: e.message}; }
                 }""",
@@ -561,106 +558,128 @@ class ShopeeAdapter(BaseMarketplace):
                 logger.warning(f"[shopee] No order_sn found for {order_id}")
                 return None
 
-            status = order_info.get("status", 0)
             carrier = order_info.get("actual_carrier", "?")
-            if status < 3:
-                logger.warning(
-                    f"[shopee] Order {order_id} ({order_sn}) status "
-                    f"'{order_info.get('status_label', status)}', carrier={carrier} — "
-                    "no waybill available (not yet shipped or courier has no printable label)."
-                )
-                return None
+            fulfillment_channel_id = order_info.get("fulfillment_channel_id", 0)
+            shop_id = order_info.get("shop_id", 0)
 
-            waybill_result = await page.evaluate(
+            printability = await page.evaluate(
                 """async (args) => {
                     try {
-                        const url = "/api/v3/logistics/get_waybill_format?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2";
-                        const r = await fetch(url, {
+                        const pkgR = await fetch("/api/v3/order/get_package?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&order_id=" + args.order_id);
+                        const pkgData = await pkgR.json();
+                        if (pkgData.code !== 0) return {error: "get_package failed"};
+                        const pkgs = pkgData.data?.order_info?.package_list || [];
+                        if (!pkgs.length) return {error: "no packages"};
+                        const packageNumber = pkgs[0].package_number;
+
+                        const cpR = await fetch("/api/v3/logistics/can_print_waybill?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2", {
                             method: "POST",
                             headers: {"Content-Type": "application/json"},
-                            body: JSON.stringify({order_list: [{order_sn: args.order_sn}]})
+                            body: JSON.stringify({
+                                group_list: [{
+                                    primary_package_number: packageNumber,
+                                    group_shipment_id: 0,
+                                    package_list: [{order_id: parseInt(args.order_id), package_number: packageNumber}]
+                                }],
+                                region_id: "ID",
+                                shop_id: args.shop_id,
+                                page_type: 3
+                            })
                         });
-                        const data = await r.json();
-                        if (data.code !== 0) return {error: "get_waybill_format: " + (data.message || "api error")};
-                        return data.data;
+                        const cpData = await cpR.json();
+                        if (cpData.code !== 0) return {error: "can_print_waybill: " + (cpData.message || "api error")};
+                        const info = cpData.data?.list?.[0];
+                        return {
+                            can_print: info?.can_print_normal_waybill || false,
+                            is_printed: info?.is_awb_printed || false,
+                            package_number: packageNumber,
+                        };
                     } catch (e) { return {error: e.message}; }
                 }""",
-                {"order_sn": order_sn, "spc_cds": spc_cds},
+                {"order_id": order_id, "spc_cds": spc_cds, "shop_id": shop_id},
             )
 
-            if not waybill_result or waybill_result.get("error"):
-                msg = waybill_result.get("error", "unknown") if waybill_result else "no response"
-                logger.warning(f"[shopee] Waybill format check failed for {order_sn}: {msg}")
+            if not printability or printability.get("error"):
+                logger.warning(f"[shopee] Waybill check failed for {order_id}: {printability}")
                 return None
 
-            waybill_list = waybill_result.get("list", [])
-            if not waybill_list:
+            if not printability.get("can_print"):
                 logger.warning(
-                    f"[shopee] No waybills available for {order_sn} "
-                    f"(status={order_info.get('status_label', status)}, carrier={order_info.get('actual_carrier', '')}). "
-                    "Waybill may not be generated yet."
+                    f"[shopee] Order {order_id} ({order_sn}) carrier={carrier} — "
+                    "waybill not available for printing (Cetak Label not enabled for this order)."
                 )
                 return None
+
+            package_number = printability.get("package_number", "")
 
             download_result = await page.evaluate(
                 """async (args) => {
                     try {
-                        const r = await fetch("/api/v3/logistics/create_sd_jobs?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2", {
+                        const r = await fetch("/api/v3/logistics/create_sd_jobs?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&async_sd_version=0.2", {
                             method: "POST",
                             headers: {"Content-Type": "application/json"},
                             body: JSON.stringify({
-                                order_list: [{order_sn: args.order_sn}],
-                                waybill_type: args.waybill_type || "NORMAL"
+                                group_list: [{
+                                    primary_package_number: args.package_number,
+                                    group_shipment_id: 0,
+                                    package_list: [{order_id: parseInt(args.order_id), package_number: args.package_number}]
+                                }],
+                                region_id: "ID",
+                                shop_id: args.shop_id,
+                                channel_id: args.channel_id,
+                                generate_file_details: [{
+                                    file_type: "THERMAL_PDF",
+                                    file_name: "Label Pengiriman",
+                                    file_contents: [3]
+                                }],
+                                record_generate_schema: false
                             })
                         });
                         const data = await r.json();
-                        if (data.code !== 0) return {error: "create_sd_jobs: " + (data.message || "api error")};
-                        const jobId = data.data?.job_id;
-                        if (!jobId) return {error: "no job_id returned"};
+                        if (data.code !== 0) return {error: "create_sd_jobs: " + (data.user_message || data.message || "api error")};
+                        const list = data.data?.list;
+                        if (!list || !list.length || !list[0].job_id) return {error: "create_sd_jobs: no job_id"};
 
+                        const jobId = list[0].job_id;
                         await new Promise(resolve => setTimeout(resolve, 3000));
 
-                        const jobUrl = "/api/v3/logistics/get_sd_job?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&job_id=" + jobId;
-                        const jobR = await fetch(jobUrl);
+                        const jobR = await fetch("/api/v3/logistics/get_sd_job?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&job_id=" + jobId);
                         const jobData = await jobR.json();
                         if (jobData.code !== 0) return {error: "get_sd_job: " + (jobData.message || "api error")};
-
                         const fileId = jobData.data?.file_id;
-                        if (!fileId) return {error: "job not ready yet, file_id missing"};
+                        if (!fileId) return {error: "sd_job completed but no file_id (label not downloadable for this carrier/courier)"};
 
-                        const dlUrl = "/api/v3/logistics/download_sd_job?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&file_id=" + fileId;
-                        const dlR = await fetch(dlUrl);
-                        if (!dlR.ok) return {code: -1, message: "download HTTP " + dlR.status};
-
-                        const contentType = dlR.headers.get("content-type") || "";
+                        const dlR = await fetch("/api/v3/logistics/download_sd_job?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&file_id=" + fileId);
+                        if (!dlR.ok) return {error: "download HTTP " + dlR.status};
                         const buf = await dlR.arrayBuffer();
                         const bytes = new Uint8Array(buf);
                         let binary = "";
-                        for (let i = 0; i < bytes.byteLength; i++) {
-                            binary += String.fromCharCode(bytes[i]);
-                        }
-                        return {code: 0, data: btoa(binary), content_type: contentType};
-                    } catch (e) { return {code: -1, message: e.message}; }
+                        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+                        return {code: 0, data: btoa(binary)};
+                    } catch (e) { return {error: e.message}; }
                 }""",
-                {"order_sn": order_sn, "spc_cds": spc_cds, "waybill_type": waybill_result.get("waybill_type", "NORMAL")},
+                {
+                    "order_id": order_id,
+                    "spc_cds": spc_cds,
+                    "shop_id": shop_id,
+                    "channel_id": fulfillment_channel_id,
+                    "package_number": package_number,
+                },
             )
 
-            if not download_result or download_result.get("code") != 0:
-                msg = download_result.get("message", "unknown") if download_result else "no response"
-                logger.warning(f"[shopee] Label download failed for {order_id}: {msg}")
-                return None
+            if download_result and download_result.get("code") == 0:
+                pdf_b64 = download_result.get("data", "")
+                if pdf_b64:
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    filename = f"{date.today().isoformat()}_shopee_{order_id}.pdf"
+                    filepath = output_dir / filename
+                    filepath.write_bytes(__import__("base64").b64decode(pdf_b64))
+                    logger.info(f"[shopee] Shipping label saved: {filepath}")
+                    return filepath
 
-            pdf_b64 = download_result.get("data", "")
-            if not pdf_b64:
-                logger.warning(f"[shopee] No PDF data returned for order {order_id}")
-                return None
-
-            output_dir.mkdir(parents=True, exist_ok=True)
-            filename = f"{date.today().isoformat()}_shopee_{order_id}.pdf"
-            filepath = output_dir / filename
-            filepath.write_bytes(__import__("base64").b64decode(pdf_b64))
-            logger.info(f"[shopee] Shipping label saved: {filepath}")
-            return filepath
+            msg = download_result.get("error", "unknown") if download_result else "no response"
+            logger.warning(f"[shopee] Label download failed for {order_id} ({order_sn}): {msg}")
+            return None
 
         except Exception as e:
             logger.error(f"[shopee] Failed to download label for {order_id}: {e}")
