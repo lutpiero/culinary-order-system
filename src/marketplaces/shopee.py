@@ -514,10 +514,15 @@ class ShopeeAdapter(BaseMarketplace):
         return None
 
     async def download_shipping_label(self, order_id: str, output_dir: Path) -> Path | None:
+        logger.info(f"[shopee] Downloading shipping label for order {order_id}")
+
+        if output_dir is None:
+            output_dir = self._label_output_dir()
+
         page = await self._get_page()
 
         try:
-            await page.goto(f"{self.config.seller_center_url}/portal/sale/order/{order_id}", timeout=15000)
+            await page.goto(f"{self.config.seller_center_url}/portal/sale/order", timeout=30000)
         except Exception:
             pass
 
@@ -525,32 +530,69 @@ class ShopeeAdapter(BaseMarketplace):
             logger.error("[shopee] Session expired, cannot download label.")
             return None
 
+        ctx = page.context
+
+        pdf_data: dict | None = None
+        pdf_event = asyncio.Event()
+
+        async def on_pdf_page(new_page):
+            nonlocal pdf_data
+            logger.info("[shopee] AWB print page opened")
+            try:
+                await new_page.wait_for_load_state("networkidle")
+                for attempt in range(15):
+                    await asyncio.sleep(2)
+                    result = await new_page.evaluate("""async () => {
+                        for (const f of document.querySelectorAll('iframe')) {
+                            if (f.src && f.src.startsWith('blob:')) {
+                                try {
+                                    const resp = await fetch(f.src);
+                                    const blob = await resp.blob();
+                                    const reader = new FileReader();
+                                    return await new Promise((resolve) => {
+                                        reader.onload = () => resolve({
+                                            size: blob.size,
+                                            type: blob.type,
+                                            b64: reader.result.split(',')[1],
+                                        });
+                                        reader.readAsDataURL(blob);
+                                    });
+                                } catch (e) { return {error: String(e)}; }
+                            }
+                        }
+                        return null;
+                    }""")
+                    if result is not None:
+                        pdf_data = result
+                        pdf_event.set()
+                        await new_page.close()
+                        return
+                pdf_data = {"error": "no blob iframe found after polling"}
+            except Exception as e:
+                logger.warning(f"[shopee] Error in AWB print page: {e}")
+                pdf_data = {"error": str(e)}
+            pdf_event.set()
+
+        ctx.on("page", on_pdf_page)
+
         try:
+            await page.wait_for_timeout(15000)
             spc_cds = await self._get_spc_cds(page)
 
             order_info = await page.evaluate(
                 """async (args) => {
                     try {
-                        const url = "/api/v3/order/get_one_order?order_id=" + args.order_id
-                            + "&SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2";
-                        const r = await fetch(url);
+                        const r = await fetch("/api/v3/order/get_one_order?order_id=" + args.order_id
+                            + "&SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2");
                         const data = await r.json();
                         if (data.code !== 0) return {error: "get_one_order: " + (data.message || "api error")};
-                        return {
-                            order_sn: data.data.order_sn,
-                            status: data.data.status,
-                            status_label: data.data.status_info?.status || "",
-                            actual_carrier: data.data.actual_carrier || "",
-                            shop_id: data.data.shop_id || 0,
-                            fulfillment_channel_id: data.data.fulfillment_channel_id || 0,
-                        };
+                        return {order_sn: data.data.order_sn};
                     } catch (e) { return {error: e.message}; }
                 }""",
                 {"order_id": order_id, "spc_cds": spc_cds},
             )
-
             if not order_info or order_info.get("error"):
-                logger.warning(f"[shopee] Failed to get order info for {order_id}: {order_info.get('error', 'unknown')}")
+                logger.warning(f"[shopee] Failed to verify order {order_id}: {order_info}")
                 return None
 
             order_sn = order_info.get("order_sn", "")
@@ -558,132 +600,55 @@ class ShopeeAdapter(BaseMarketplace):
                 logger.warning(f"[shopee] No order_sn found for {order_id}")
                 return None
 
-            carrier = order_info.get("actual_carrier", "?")
-            fulfillment_channel_id = order_info.get("fulfillment_channel_id", 0)
-            shop_id = order_info.get("shop_id", 0)
-
-            printability = await page.evaluate(
-                """async (args) => {
-                    try {
-                        const pkgR = await fetch("/api/v3/order/get_package?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&order_id=" + args.order_id);
-                        const pkgData = await pkgR.json();
-                        if (pkgData.code !== 0) return {error: "get_package failed"};
-                        const pkgs = pkgData.data?.order_info?.package_list || [];
-                        if (!pkgs.length) return {error: "no packages"};
-                        const packageNumber = pkgs[0].package_number;
-
-                        const cpR = await fetch("/api/v3/logistics/can_print_waybill?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2", {
-                            method: "POST",
-                            headers: {"Content-Type": "application/json"},
-                            body: JSON.stringify({
-                                group_list: [{
-                                    primary_package_number: packageNumber,
-                                    group_shipment_id: 0,
-                                    package_list: [{order_id: parseInt(args.order_id), package_number: packageNumber}]
-                                }],
-                                region_id: "ID",
-                                shop_id: args.shop_id,
-                                page_type: 3
-                            })
-                        });
-                        const cpData = await cpR.json();
-                        if (cpData.code !== 0) return {error: "can_print_waybill: " + (cpData.message || "api error")};
-                        const info = cpData.data?.list?.[0];
-                        return {
-                            can_print: info?.can_print_normal_waybill || false,
-                            is_printed: info?.is_awb_printed || false,
-                            package_number: packageNumber,
-                        };
-                    } catch (e) { return {error: e.message}; }
+            clicked = await page.evaluate(
+                """(args) => {
+                    const buttons = document.querySelectorAll('button');
+                    for (const btn of buttons) {
+                        if (btn.textContent.trim() !== 'Cetak Label') continue;
+                        let el = btn;
+                        for (let i = 0; i < 10; i++) {
+                            el = el.parentElement;
+                            if (!el) break;
+                            if ((el.textContent || '').includes(args.order_sn)) {
+                                btn.click();
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
                 }""",
-                {"order_id": order_id, "spc_cds": spc_cds, "shop_id": shop_id},
+                {"order_sn": order_sn},
             )
 
-            if not printability or printability.get("error"):
-                logger.warning(f"[shopee] Waybill check failed for {order_id}: {printability}")
+            if not clicked:
+                logger.warning(f"[shopee] Cetak Label button not found for order {order_id} ({order_sn})")
                 return None
 
-            if not printability.get("can_print"):
-                logger.warning(
-                    f"[shopee] Order {order_id} ({order_sn}) carrier={carrier} — "
-                    "waybill not available for printing (Cetak Label not enabled for this order)."
-                )
-                return None
+            await asyncio.wait_for(pdf_event.wait(), timeout=45)
 
-            package_number = printability.get("package_number", "")
+            if pdf_data and pdf_data.get("size", 0) > 0 and pdf_data.get("b64"):
+                b64 = pdf_data["b64"]
+                pdf_bytes = __import__("base64").b64decode(b64)
+                output_dir.mkdir(parents=True, exist_ok=True)
+                filename = f"{date.today().isoformat()}_shopee_{order_id}.pdf"
+                filepath = output_dir / filename
+                filepath.write_bytes(pdf_bytes)
+                logger.info(f"[shopee] Shipping label saved ({len(pdf_bytes)} bytes): {filepath}")
+                return filepath
 
-            download_result = await page.evaluate(
-                """async (args) => {
-                    try {
-                        const r = await fetch("/api/v3/logistics/create_sd_jobs?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&async_sd_version=0.2", {
-                            method: "POST",
-                            headers: {"Content-Type": "application/json"},
-                            body: JSON.stringify({
-                                group_list: [{
-                                    primary_package_number: args.package_number,
-                                    group_shipment_id: 0,
-                                    package_list: [{order_id: parseInt(args.order_id), package_number: args.package_number}]
-                                }],
-                                region_id: "ID",
-                                shop_id: args.shop_id,
-                                channel_id: args.channel_id,
-                                generate_file_details: [{
-                                    file_type: "THERMAL_PDF",
-                                    file_name: "Label Pengiriman",
-                                    file_contents: [3]
-                                }],
-                                record_generate_schema: false
-                            })
-                        });
-                        const data = await r.json();
-                        if (data.code !== 0) return {error: "create_sd_jobs: " + (data.user_message || data.message || "api error")};
-                        const list = data.data?.list;
-                        if (!list || !list.length || !list[0].job_id) return {error: "create_sd_jobs: no job_id"};
-
-                        const jobId = list[0].job_id;
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-
-                        const jobR = await fetch("/api/v3/logistics/get_sd_job?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&job_id=" + jobId);
-                        const jobData = await jobR.json();
-                        if (jobData.code !== 0) return {error: "get_sd_job: " + (jobData.message || "api error")};
-                        const fileId = jobData.data?.file_id;
-                        if (!fileId) return {error: "sd_job completed but no file_id (label not downloadable for this carrier/courier)"};
-
-                        const dlR = await fetch("/api/v3/logistics/download_sd_job?SPC_CDS=" + args.spc_cds + "&SPC_CDS_VER=2&file_id=" + fileId);
-                        if (!dlR.ok) return {error: "download HTTP " + dlR.status};
-                        const buf = await dlR.arrayBuffer();
-                        const bytes = new Uint8Array(buf);
-                        let binary = "";
-                        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-                        return {code: 0, data: btoa(binary)};
-                    } catch (e) { return {error: e.message}; }
-                }""",
-                {
-                    "order_id": order_id,
-                    "spc_cds": spc_cds,
-                    "shop_id": shop_id,
-                    "channel_id": fulfillment_channel_id,
-                    "package_number": package_number,
-                },
-            )
-
-            if download_result and download_result.get("code") == 0:
-                pdf_b64 = download_result.get("data", "")
-                if pdf_b64:
-                    output_dir.mkdir(parents=True, exist_ok=True)
-                    filename = f"{date.today().isoformat()}_shopee_{order_id}.pdf"
-                    filepath = output_dir / filename
-                    filepath.write_bytes(__import__("base64").b64decode(pdf_b64))
-                    logger.info(f"[shopee] Shipping label saved: {filepath}")
-                    return filepath
-
-            msg = download_result.get("error", "unknown") if download_result else "no response"
-            logger.warning(f"[shopee] Label download failed for {order_id} ({order_sn}): {msg}")
+            err_msg = pdf_data.get("error", "unknown") if pdf_data else "no pdf data"
+            logger.warning(f"[shopee] Label download failed for {order_id} ({order_sn}): {err_msg}")
             return None
 
+        except TimeoutError:
+            logger.warning(f"[shopee] Timeout waiting for AWB print page for order {order_id}")
+            return None
         except Exception as e:
-            logger.error(f"[shopee] Failed to download label for {order_id}: {e}")
+            logger.error(f"[shopee] Label download error for {order_id}: {e}")
             return None
+        finally:
+            ctx.remove_listener("page", on_pdf_page)
+            await self._save_session()
 
     async def create_product(self, product: MarketProduct) -> str | None:
         logger.warning(
