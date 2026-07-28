@@ -409,6 +409,11 @@ class TokopediaAdapter(BaseMarketplace):
     async def download_shipping_label(self, order_id: str, output_dir: Path) -> Path | None:
         page = await self._get_page()
 
+        try:
+            await page.goto(f"{self.config.seller_center_url}/order", timeout=20000)
+        except Exception:
+            pass
+
         if await self._check_login_needed(page):
             logger.error("[tokopedia] Session expired, cannot download label.")
             return None
