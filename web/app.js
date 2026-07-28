@@ -153,13 +153,17 @@ function renderMenuCard(item) {
     ? `<img class="menu-card-image" src="${escHtml(item.imageUrl)}" alt="${escHtml(item.name)}" loading="lazy"/>`
     : `<div class="menu-card-image-placeholder">🍽️</div>`;
 
-  const unavailableClass = !item.isAvailable ? " menu-card-unavailable" : "";
-  const actionHtml = item.isAvailable
+  // Check availability: must be available AND have stock (if stock is tracked)
+  const hasStock = item.stock === null || item.stock === undefined || item.stock > 0;
+  const isAvailable = item.isAvailable && hasStock;
+  
+  const unavailableClass = !isAvailable ? " menu-card-unavailable" : "";
+  const actionHtml = isAvailable
     ? `<button class="menu-card-add" onclick="event.stopPropagation();quickAddToCart('${item.id}')" aria-label="Tambah ${escHtml(item.name)}">+</button>`
     : `<span class="menu-card-badge-unavailable">Habis</span>`;
 
   return `
-    <div class="menu-card${unavailableClass}" onclick="${item.isAvailable ? `openItemModal('${item.id}')` : ''}" role="button" tabindex="${item.isAvailable ? 0 : -1}">
+    <div class="menu-card${unavailableClass}" onclick="${isAvailable ? `openItemModal('${item.id}')` : ''}" role="button" tabindex="${isAvailable ? 0 : -1}">
       ${imgHtml}
       <div class="menu-card-body">
         <div class="menu-card-name">${escHtml(item.name)}</div>

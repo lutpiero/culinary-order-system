@@ -75,15 +75,48 @@ class OrderRepositoryImpl @Inject constructor(
     override suspend fun createOrder(order: Order): Result<Order> {
         return try {
             Logger.d("Creating order for table ${order.tableNumber}", TAG)
-            val dto = OrderDto.fromDomain(order)
-            val docRef = ordersCollection.add(dto).await()
-            Logger.i("Order created successfully: ${docRef.id}", TAG)
-            Result.success(order.copy(id = docRef.id))
+            
+            // Use transaction to ensure atomic stock updates
+            val result = firestore.runTransaction { transaction ->
+                val menuItemsCollection = firestore.collection("menuItems")
+                
+                // Check and update stock for each item
+                for (item in order.items) {
+                    val menuItemRef = menuItemsCollection.document(item.menuItemId)
+                    val menuItemSnapshot = transaction.get(menuItemRef)
+                    
+                    if (!menuItemSnapshot.exists()) {
+                        throw Exception("Menu item ${item.menuItemId} not found")
+                    }
+                    
+                    val currentStock = menuItemSnapshot.getLong("stock")?.toInt()
+                    
+                    // If stock is tracked (not null), check and decrease it
+                    if (currentStock != null) {
+                        if (currentStock < item.quantity) {
+                            throw Exception("Insufficient stock for ${item.menuItemName}. Available: $currentStock, Requested: ${item.quantity}")
+                        }
+                        
+                        val newStock = currentStock - item.quantity
+                        transaction.update(menuItemRef, "stock", newStock)
+                        Logger.d("Updated stock for ${item.menuItemName}: $currentStock -> $newStock", TAG)
+                    }
+                }
+                
+                // Create the order
+                val dto = OrderDto.fromDomain(order)
+                val docRef = ordersCollection.document()
+                transaction.set(docRef, dto)
+                docRef.id
+            }.await()
+            
+            Logger.i("Order created successfully: $result", TAG)
+            Result.success(order.copy(id = result))
         } catch (e: FirebaseFirestoreException) {
             Logger.e("Firestore error creating order", e, TAG)
             Result.failure(e)
         } catch (e: Exception) {
-            Logger.e("Unexpected error creating order", e, TAG)
+            Logger.e("Error creating order: ${e.message}", e, TAG)
             Result.failure(e)
         }
     }

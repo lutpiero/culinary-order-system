@@ -58,5 +58,6 @@ data class MenuItem(
     val imageUrl: String = "",
     val isAvailable: Boolean = true,
     val toppingGroups: List<ToppingGroup> = emptyList(),
-    val preparationTimeMinutes: Int = 10
+    val preparationTimeMinutes: Int = 10,
+    val stock: Int? = null // null means unlimited stock
 )

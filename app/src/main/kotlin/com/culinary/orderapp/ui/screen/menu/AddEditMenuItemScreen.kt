@@ -172,6 +172,20 @@ fun AddEditMenuItemScreen(
                 singleLine = true
             )
 
+            OutlinedTextField(
+                value = item.stock?.toString() ?: "",
+                onValueChange = { value ->
+                    viewModel.updateFormItem(
+                        item.copy(stock = if (value.isBlank()) null else value.toIntOrNull())
+                    )
+                },
+                label = { Text("Stok (kosongkan untuk unlimited)") },
+                placeholder = { Text("Unlimited") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true
+            )
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     checked = item.isAvailable,

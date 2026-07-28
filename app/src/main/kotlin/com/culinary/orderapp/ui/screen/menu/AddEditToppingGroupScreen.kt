@@ -40,10 +40,10 @@ fun AddEditToppingGroupScreen(
         menuItem?.toppingGroups?.find { it.id == toppingGroupId }
     } else null
 
-    var groupName by remember { mutableStateOf(existingGroup?.name ?: "") }
-    var isRequired by remember { mutableStateOf(existingGroup?.isRequired ?: false) }
-    var toppingType by remember { mutableStateOf(existingGroup?.type ?: ToppingType.SINGLE_SELECT) }
-    var toppings by remember { mutableStateOf(existingGroup?.toppings ?: emptyList()) }
+    var groupName by remember(toppingGroupId) { mutableStateOf(existingGroup?.name ?: "") }
+    var isRequired by remember(toppingGroupId) { mutableStateOf(existingGroup?.isRequired ?: false) }
+    var toppingType by remember(toppingGroupId) { mutableStateOf(existingGroup?.type ?: ToppingType.SINGLE_SELECT) }
+    var toppings by remember(toppingGroupId) { mutableStateOf(existingGroup?.toppings ?: emptyList()) }
     var showAddToppingDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 

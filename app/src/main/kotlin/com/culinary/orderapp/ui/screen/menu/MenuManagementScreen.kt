@@ -194,6 +194,14 @@ fun MenuItemCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (item.stock != null) {
+                    Text(
+                        text = "Stok: ${item.stock}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (item.stock > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

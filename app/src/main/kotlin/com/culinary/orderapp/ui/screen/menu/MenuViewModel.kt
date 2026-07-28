@@ -90,7 +90,7 @@ class MenuViewModel @Inject constructor(
 
     fun toggleAvailability(itemId: String, isAvailable: Boolean) {
         viewModelScope.launch {
-            toggleAvailability.invoke(itemId, isAvailable)
+            this@MenuViewModel.toggleAvailability.invoke(itemId, isAvailable)
         }
     }
 

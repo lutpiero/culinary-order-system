@@ -113,7 +113,8 @@ data class MenuItemDto(
     @PropertyName("isAvailable")
     val isAvailable: Boolean = true,
     val toppingGroups: List<ToppingGroupDto> = emptyList(),
-    val preparationTimeMinutes: Int = 10
+    val preparationTimeMinutes: Int = 10,
+    val stock: Int? = null
 ) {
     fun toDomain() = MenuItem(
         id = id,
@@ -125,7 +126,8 @@ data class MenuItemDto(
         imageUrl = imageUrl,
         isAvailable = isAvailable,
         toppingGroups = toppingGroups.map { it.toDomain() },
-        preparationTimeMinutes = preparationTimeMinutes
+        preparationTimeMinutes = preparationTimeMinutes,
+        stock = stock
     )
 
     companion object {
@@ -139,7 +141,8 @@ data class MenuItemDto(
             imageUrl = item.imageUrl,
             isAvailable = item.isAvailable,
             toppingGroups = item.toppingGroups.map { ToppingGroupDto.fromDomain(it) },
-            preparationTimeMinutes = item.preparationTimeMinutes
+            preparationTimeMinutes = item.preparationTimeMinutes,
+            stock = item.stock
         )
     }
 }
