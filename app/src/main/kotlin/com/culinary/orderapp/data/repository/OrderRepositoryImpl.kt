@@ -172,7 +172,6 @@ class OrderRepositoryImpl @Inject constructor(
             val snapshot = ordersCollection
                 .whereGreaterThanOrEqualTo("createdAt", Timestamp(from))
                 .whereLessThanOrEqualTo("createdAt", Timestamp(to))
-                .whereNotEqualTo("status", OrderStatus.CANCELLED.name)
                 .get()
                 .await()
 
@@ -182,7 +181,7 @@ class OrderRepositoryImpl @Inject constructor(
                 }.onFailure { e ->
                     Logger.e("Error parsing order in summary: ${doc.id}", e, TAG)
                 }.getOrNull()
-            }
+            }.filter { it.status != OrderStatus.CANCELLED }
 
             val totalRevenue = orders.sumOf { it.totalAmount }
             val qrisRevenue = orders
