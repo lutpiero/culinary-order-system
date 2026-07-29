@@ -5,19 +5,16 @@ import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/**
- * Sealed class representing all navigation destinations in the app.
- */
 sealed class Screen(val route: String) {
-    // Bottom nav destinations
     data object Orders : Screen("orders")
     data object Menu : Screen("menu")
     data object Finance : Screen("finance")
     data object QrCode : Screen("qrcode")
+    data object Settings : Screen("settings")
 
-    // Detail/sub screens
     data object OrderDetail : Screen("order_detail/{orderId}") {
         fun createRoute(orderId: String) = "order_detail/$orderId"
     }
@@ -31,11 +28,14 @@ sealed class Screen(val route: String) {
     data object AddEditToppingGroup : Screen("topping_group/{menuItemId}/{toppingGroupId}") {
         fun createRoute(menuItemId: String, toppingGroupId: String = "new") = "topping_group/$menuItemId/$toppingGroupId"
     }
+
+    data object UserManagement : Screen("user_management")
+    data object AddEditUser : Screen("add_edit_user/{userId}") {
+        fun createRoute(userId: String = "new") = "add_edit_user/$userId"
+    }
+    data object RoleManagement : Screen("role_management")
 }
 
-/**
- * Bottom navigation items shown in the main Seller app.
- */
 data class BottomNavItem(
     val screen: Screen,
     val label: String,
@@ -46,5 +46,6 @@ val bottomNavItems = listOf(
     BottomNavItem(Screen.Orders, "Pesanan", Icons.Filled.Receipt),
     BottomNavItem(Screen.Menu, "Menu", Icons.Filled.MenuBook),
     BottomNavItem(Screen.Finance, "Keuangan", Icons.Filled.AttachMoney),
-    BottomNavItem(Screen.QrCode, "QR Meja", Icons.Filled.QrCode)
+    BottomNavItem(Screen.QrCode, "QR Meja", Icons.Filled.QrCode),
+    BottomNavItem(Screen.Settings, "Pengaturan", Icons.Filled.Settings)
 )

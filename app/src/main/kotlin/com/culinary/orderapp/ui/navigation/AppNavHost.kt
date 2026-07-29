@@ -7,6 +7,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.culinary.orderapp.domain.model.Permission
+import com.culinary.orderapp.domain.state.CurrentUserState
+import com.culinary.orderapp.ui.component.RequirePermission
 import com.culinary.orderapp.ui.screen.finance.FinanceScreen
 import com.culinary.orderapp.ui.screen.menu.AddEditMenuItemScreen
 import com.culinary.orderapp.ui.screen.menu.AddEditToppingGroupScreen
@@ -16,20 +19,30 @@ import com.culinary.orderapp.ui.screen.menu.ToppingManagementScreen
 import com.culinary.orderapp.ui.screen.orders.OrderDetailScreen
 import com.culinary.orderapp.ui.screen.orders.OrdersScreen
 import com.culinary.orderapp.ui.screen.qrcode.QrCodeScreen
+import com.culinary.orderapp.ui.screen.settings.SettingsScreen
+import com.culinary.orderapp.ui.screen.users.UserManagementScreen
+import com.culinary.orderapp.ui.screen.users.AddEditUserScreen
+import com.culinary.orderapp.ui.screen.roles.RoleManagementScreen
 
 @Composable
-fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
+fun AppNavHost(
+    navController: NavHostController,
+    currentUserState: CurrentUserState,
+    modifier: Modifier = Modifier
+) {
     NavHost(
         navController = navController,
         startDestination = Screen.Orders.route,
         modifier = modifier
     ) {
         composable(Screen.Orders.route) {
-            OrdersScreen(
-                onOrderClick = { orderId ->
-                    navController.navigate(Screen.OrderDetail.createRoute(orderId))
-                }
-            )
+            RequirePermission(Permission.VIEW_ORDERS, currentUserState) {
+                OrdersScreen(
+                    onOrderClick = { orderId ->
+                        navController.navigate(Screen.OrderDetail.createRoute(orderId))
+                    }
+                )
+            }
         }
 
         composable(
@@ -44,18 +57,20 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
         }
 
         composable(Screen.Menu.route) {
-            MenuManagementScreen(
-                onAddItem = { navController.navigate(Screen.AddEditMenuItem.createRoute()) },
-                onEditItem = { itemId ->
-                    navController.navigate(Screen.AddEditMenuItem.createRoute(itemId))
-                },
-                onManageCategories = {
-                    navController.navigate(Screen.CategoryManagement.route)
-                },
-                onManageToppings = { menuItemId, menuItemName ->
-                    navController.navigate(Screen.ToppingManagement.createRoute(menuItemId, menuItemName))
-                }
-            )
+            RequirePermission(Permission.VIEW_MENU, currentUserState) {
+                MenuManagementScreen(
+                    onAddItem = { navController.navigate(Screen.AddEditMenuItem.createRoute()) },
+                    onEditItem = { itemId ->
+                        navController.navigate(Screen.AddEditMenuItem.createRoute(itemId))
+                    },
+                    onManageCategories = {
+                        navController.navigate(Screen.CategoryManagement.route)
+                    },
+                    onManageToppings = { menuItemId, menuItemName ->
+                        navController.navigate(Screen.ToppingManagement.createRoute(menuItemId, menuItemName))
+                    }
+                )
+            }
         }
 
         composable(
@@ -111,11 +126,55 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
         }
 
         composable(Screen.Finance.route) {
-            FinanceScreen()
+            RequirePermission(Permission.VIEW_FINANCE, currentUserState) {
+                FinanceScreen()
+            }
         }
 
         composable(Screen.QrCode.route) {
-            QrCodeScreen()
+            RequirePermission(Permission.VIEW_QR_CODE, currentUserState) {
+                QrCodeScreen()
+            }
+        }
+
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onNavigateToUserManagement = {
+                    navController.navigate(Screen.UserManagement.route)
+                },
+                onNavigateToRoleManagement = {
+                    navController.navigate(Screen.RoleManagement.route)
+                }
+            )
+        }
+
+        composable(Screen.UserManagement.route) {
+            UserManagementScreen(
+                onAddUser = {
+                    navController.navigate(Screen.AddEditUser.createRoute())
+                },
+                onEditUser = { userId ->
+                    navController.navigate(Screen.AddEditUser.createRoute(userId))
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.AddEditUser.route,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: "new"
+            AddEditUserScreen(
+                userId = if (userId == "new") null else userId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.RoleManagement.route) {
+            RoleManagementScreen(
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

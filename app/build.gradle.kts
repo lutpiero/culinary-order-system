@@ -90,6 +90,9 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.messaging)
+    
+    // Google Sign-In
+    implementation(libs.play.services.auth)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
