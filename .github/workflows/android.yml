@@ -71,13 +71,9 @@ jobs:
 
       - name: Print keystore SHA-1 for Firebase
         run: |
-          SHA1=$(keytool -list -v -keystore ${{ github.workspace }}/keystore.jks \
+          keytool -list -v -keystore ${{ github.workspace }}/keystore.jks \
             -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
-            -alias ${{ secrets.KEY_ALIAS }} \
-            -keypass ${{ secrets.KEY_PASSWORD }} \
-            | grep SHA1 | awk '{print $2}')
-          echo "Register this SHA-1 in Firebase Console:"
-          echo "SHA1=$SHA1"
+            | grep SHA1
 
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest --no-daemon
