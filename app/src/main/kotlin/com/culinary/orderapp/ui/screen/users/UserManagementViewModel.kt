@@ -54,7 +54,7 @@ class UserManagementViewModel @Inject constructor(
         }
     }
 
-    fun deleteUser(userId: String) {
+    fun handleDeleteUser(userId: String) {
         viewModelScope.launch {
             deleteUser(userId).onFailure { e ->
                 Logger.e("Failed to delete user", e, TAG)

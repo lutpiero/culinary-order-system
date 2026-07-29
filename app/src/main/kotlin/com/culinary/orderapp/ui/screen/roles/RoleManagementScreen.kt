@@ -94,7 +94,7 @@ fun RoleManagementScreen(
             text = { Text("Apakah Anda yakin ingin menghapus role \"${role.displayName}\"?") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteRole(role.id)
+                    viewModel.handleDeleteRole(role.id)
                     showDeleteDialog = null
                 }) {
                     Text("Hapus", color = MaterialTheme.colorScheme.error)

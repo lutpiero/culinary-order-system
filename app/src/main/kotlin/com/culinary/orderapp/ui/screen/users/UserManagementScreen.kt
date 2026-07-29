@@ -95,7 +95,7 @@ fun UserManagementScreen(
             text = { Text("Apakah Anda yakin ingin menghapus ${user.displayName}?") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteUser(user.id)
+                    viewModel.handleDeleteUser(user.id)
                     showDeleteDialog = null
                 }) {
                     Text("Hapus", color = MaterialTheme.colorScheme.error)

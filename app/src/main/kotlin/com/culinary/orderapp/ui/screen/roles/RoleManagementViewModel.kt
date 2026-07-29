@@ -148,7 +148,7 @@ class RoleManagementViewModel @Inject constructor(
         }
     }
 
-    fun deleteRole(roleId: String) {
+    fun handleDeleteRole(roleId: String) {
         viewModelScope.launch {
             deleteRole(roleId).fold(
                 onSuccess = { _uiState.value = _uiState.value.copy(successMessage = "Role berhasil dihapus") },
