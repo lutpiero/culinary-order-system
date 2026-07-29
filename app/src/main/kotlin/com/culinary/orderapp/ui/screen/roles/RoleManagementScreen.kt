@@ -76,8 +76,8 @@ fun RoleManagementScreen(
                         items(uiState.roles, key = { it.id }) { role ->
                             RoleCard(
                                 role = role,
-                                onEdit = if (role.isSystemRole) null else { viewModel.showEditDialog(role) },
-                                onDelete = if (role.isSystemRole) null else { showDeleteDialog = role }
+                                onEdit = if (role.isSystemRole) null else ({ viewModel.showEditDialog(role) }),
+                                onDelete = if (role.isSystemRole) null else ({ showDeleteDialog = role })
                             )
                         }
                         item { Spacer(modifier = Modifier.height(80.dp)) }

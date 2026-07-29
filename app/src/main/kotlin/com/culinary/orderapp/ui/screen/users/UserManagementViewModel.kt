@@ -31,10 +31,10 @@ class UserManagementViewModel @Inject constructor(
     val uiState: StateFlow<UserManagementUiState> = _uiState.asStateFlow()
 
     init {
-        observeUsers()
+        loadUsers()
     }
 
-    private fun observeUsers() {
+    private fun loadUsers() {
         viewModelScope.launch {
             observeUsers().collect { users ->
                 _uiState.value = UserManagementUiState(

@@ -43,10 +43,10 @@ class RoleManagementViewModel @Inject constructor(
     val uiState: StateFlow<RoleManagementUiState> = _uiState.asStateFlow()
 
     init {
-        observeRoles()
+        loadRoles()
     }
 
-    private fun observeRoles() {
+    private fun loadRoles() {
         viewModelScope.launch {
             observeRoles().collect { roles ->
                 _uiState.value = _uiState.value.copy(roles = roles, isLoading = false)

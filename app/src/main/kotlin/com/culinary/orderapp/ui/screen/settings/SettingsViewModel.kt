@@ -42,10 +42,10 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
-        observeSettings()
+        loadSettings()
     }
 
-    private fun observeSettings() {
+    private fun loadSettings() {
         viewModelScope.launch {
             observeSettings().collect { settings ->
                 if (settings != null) {
