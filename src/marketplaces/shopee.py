@@ -605,10 +605,12 @@ class ShopeeAdapter(BaseMarketplace):
                     const cards = document.querySelectorAll('a.order-card');
                     for (const card of cards) {
                         if (!(card.textContent || '').includes(args.order_sn)) continue;
-                        const btn = card.querySelector('button');
-                        if (btn && btn.textContent.trim() === 'Cetak Label') {
-                            btn.click();
-                            return true;
+                        const btns = card.querySelectorAll('button');
+                        for (const btn of btns) {
+                            if (btn.textContent.trim() === 'Cetak Label') {
+                                btn.click();
+                                return true;
+                            }
                         }
                     }
                     return false;
