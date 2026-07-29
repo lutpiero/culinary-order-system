@@ -1,9 +1,19 @@
 package com.culinary.orderapp.di
 
+import com.culinary.orderapp.data.repository.AuthRepositoryImpl
 import com.culinary.orderapp.data.repository.MenuRepositoryImpl
 import com.culinary.orderapp.data.repository.OrderRepositoryImpl
+import com.culinary.orderapp.data.repository.RoleRepositoryImpl
+import com.culinary.orderapp.data.repository.SettingsRepositoryImpl
+import com.culinary.orderapp.data.repository.UserRepositoryImpl
+import com.culinary.orderapp.domain.repository.AuthRepository
 import com.culinary.orderapp.domain.repository.MenuRepository
 import com.culinary.orderapp.domain.repository.OrderRepository
+import com.culinary.orderapp.domain.repository.RoleRepository
+import com.culinary.orderapp.domain.repository.SettingsRepository
+import com.culinary.orderapp.domain.repository.UserRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -21,6 +31,10 @@ object FirebaseModule {
     @Provides
     @Singleton
     fun provideFirestore(): FirebaseFirestore = Firebase.firestore
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth = Firebase.auth
 }
 
 @Module
@@ -34,6 +48,22 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindOrderRepository(impl: OrderRepositoryImpl): OrderRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRoleRepository(impl: RoleRepositoryImpl): RoleRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
 }
 
 @Module
