@@ -16,7 +16,6 @@ import com.culinary.orderapp.domain.state.CurrentUserState
 fun RequirePermission(
     permission: Permission,
     currentUserState: CurrentUserState,
-    content: @Composable () -> Unit,
     noPermissionContent: @Composable () -> Unit = {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
@@ -25,7 +24,8 @@ fun RequirePermission(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
+    },
+    content: @Composable () -> Unit
 ) {
     val currentUser by currentUserState.currentUser.collectAsState()
     val currentRole by currentUserState.currentRole.collectAsState()
