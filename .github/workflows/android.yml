@@ -62,7 +62,20 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON_DEBUG }}
         run: echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
-        
+
+      - name: Get debug keystore SHA-1
+        run: |
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v -keystore ~/.android/debug.keystore \
+              -alias androiddebugkey -storepass android -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          SHA1=$(keytool -list -v -keystore ~/.android/debug.keystore \
+            -alias androiddebugkey -storepass android -keypass android \
+            | grep SHA1 | awk '{print $2}')
+          echo "DEBUG_SHA1=$SHA1"
+
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest --no-daemon
 
