@@ -21,6 +21,22 @@ interface AuthRepository {
     suspend fun signInWithGoogle(idToken: String): Result<User>
     
     /**
+     * Sign in with email and password
+     */
+    suspend fun signInWithEmailAndPassword(email: String, password: String): Result<User>
+    
+    /**
+     * Create a new user with email and password (Firebase Auth + Firestore doc)
+     */
+    suspend fun createUserWithEmailAndPassword(
+        email: String,
+        password: String,
+        displayName: String,
+        roleId: String,
+        roleName: String
+    ): Result<User>
+    
+    /**
      * Sign out current user
      */
     suspend fun signOut(): Result<Unit>

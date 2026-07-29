@@ -87,6 +87,78 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun signInWithEmailAndPassword(email: String, password: String): Result<User> {
+        return try {
+            Logger.d("Signing in with email/password", TAG)
+            val authResult = auth.signInWithEmailAndPassword(email, password).await()
+            val firebaseUser = authResult.user ?: return Result.failure(Exception("No user returned"))
+
+            val userDoc = usersCollection.document(firebaseUser.uid).get().await()
+            val user = if (userDoc.exists()) {
+                updateLastLogin(firebaseUser.uid)
+                userDoc.toObject(UserDto::class.java)?.toDomain()
+                    ?: return Result.failure(Exception("Failed to parse user data"))
+            } else {
+                val newUser = User(
+                    id = firebaseUser.uid,
+                    email = firebaseUser.email ?: email,
+                    displayName = firebaseUser.displayName ?: email.substringBefore("@"),
+                    photoUrl = firebaseUser.photoUrl?.toString(),
+                    roleId = SystemRoles.FINANCE,
+                    roleName = "Finance",
+                    isActive = true,
+                    createdAt = Timestamp.now().toDate(),
+                    lastLoginAt = Timestamp.now().toDate()
+                )
+                val userDto = UserDto.fromDomain(newUser)
+                usersCollection.document(firebaseUser.uid).set(userDto).await()
+                Logger.i("Created Firestore doc for email user: $email", TAG)
+                newUser
+            }
+
+            Result.success(user)
+        } catch (e: Exception) {
+            Logger.e("Error signing in with email/password", e, TAG)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun createUserWithEmailAndPassword(
+        email: String,
+        password: String,
+        displayName: String,
+        roleId: String,
+        roleName: String
+    ): Result<User> {
+        return try {
+            Logger.d("Creating user with email/password: $email", TAG)
+
+            val authResult = auth.createUserWithEmailAndPassword(email, password).await()
+            val firebaseUser = authResult.user ?: return Result.failure(Exception("No user returned"))
+
+            val newUser = User(
+                id = firebaseUser.uid,
+                email = email,
+                displayName = displayName,
+                photoUrl = null,
+                roleId = roleId,
+                roleName = roleName,
+                isActive = true,
+                createdAt = Timestamp.now().toDate(),
+                lastLoginAt = Timestamp.now().toDate()
+            )
+
+            val userDto = UserDto.fromDomain(newUser)
+            usersCollection.document(firebaseUser.uid).set(userDto).await()
+            Logger.i("Created user with email/password: $email, role: $roleName", TAG)
+
+            Result.success(newUser)
+        } catch (e: Exception) {
+            Logger.e("Error creating user with email/password", e, TAG)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun signOut(): Result<Unit> {
         return try {
             Logger.d("Signing out user", TAG)

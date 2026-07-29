@@ -41,6 +41,26 @@ class SignOutUseCase @Inject constructor(
         authRepository.signOut()
 }
 
+class SignInWithEmailPasswordUseCase @Inject constructor(
+    private val authRepository: AuthRepository
+) {
+    suspend operator fun invoke(email: String, password: String): Result<User> =
+        authRepository.signInWithEmailAndPassword(email, password)
+}
+
+class CreateUserWithEmailPasswordUseCase @Inject constructor(
+    private val authRepository: AuthRepository
+) {
+    suspend operator fun invoke(
+        email: String,
+        password: String,
+        displayName: String,
+        roleId: String,
+        roleName: String
+    ): Result<User> =
+        authRepository.createUserWithEmailAndPassword(email, password, displayName, roleId, roleName)
+}
+
 class HasPermissionUseCase @Inject constructor(
     private val authRepository: AuthRepository
 ) {

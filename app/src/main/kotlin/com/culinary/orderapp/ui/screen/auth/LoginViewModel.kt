@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.culinary.orderapp.domain.model.User
 import com.culinary.orderapp.domain.usecase.InitializeDefaultSettingsUseCase
 import com.culinary.orderapp.domain.usecase.InitializeSystemRolesUseCase
+import com.culinary.orderapp.domain.usecase.SignInWithEmailPasswordUseCase
 import com.culinary.orderapp.domain.usecase.SignInWithGoogleUseCase
 import com.culinary.orderapp.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +25,7 @@ data class LoginUiState(
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val signInWithGoogle: SignInWithGoogleUseCase,
+    private val signInWithEmailPassword: SignInWithEmailPasswordUseCase,
     private val initializeSystemRoles: InitializeSystemRolesUseCase,
     private val initializeDefaultSettings: InitializeDefaultSettingsUseCase
 ) : ViewModel() {
@@ -40,12 +42,10 @@ class LoginViewModel @Inject constructor(
             try {
                 Logger.d("Initializing app data", TAG)
                 
-                // Initialize system roles
                 initializeSystemRoles().onFailure { e ->
                     Logger.e("Failed to initialize system roles", e, TAG)
                 }
                 
-                // Initialize default settings
                 initializeDefaultSettings().onFailure { e ->
                     Logger.e("Failed to initialize default settings", e, TAG)
                 }
@@ -83,6 +83,33 @@ class LoginViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = error.message ?: "Sign-in failed"
+                    )
+                }
+            )
+        }
+    }
+
+    fun handleEmailPasswordSignIn(email: String, password: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            
+            Logger.d("Processing email/password sign-in", TAG)
+            val result = signInWithEmailPassword(email, password)
+            
+            result.fold(
+                onSuccess = { user ->
+                    Logger.i("Email sign-in successful: ${user.email}", TAG)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        user = user,
+                        errorMessage = null
+                    )
+                },
+                onFailure = { error ->
+                    Logger.e("Email sign-in failed", error, TAG)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "Email/Password sign-in failed"
                     )
                 }
             )
