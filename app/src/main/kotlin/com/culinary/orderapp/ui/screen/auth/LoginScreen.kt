@@ -41,9 +41,12 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    val serverClientId = context.getString(R.string.default_web_client_id)
+    Logger.d("serverClientId: $serverClientId", "LoginScreen")
+
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestIdToken(serverClientId)
             .requestEmail()
             .build()
     }
@@ -67,6 +70,8 @@ fun LoginScreen(
             } catch (e: ApiException) {
                 Logger.e("Google sign-in failed", e, "LoginScreen")
             }
+        } else {
+            Logger.e("Google sign-in returned resultCode=$resultCode", null, "LoginScreen")
         }
     }
 
