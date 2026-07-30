@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  JAVA_VERSION: '17'
+
+permissions:
+  contents: read
+
+jobs:
+  sign-and-release:
+    name: Sign & Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Create google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/keystore.jks
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+
+      # Temporary: print SHA-1 for Firebase Console setup
+      - name: Print Keystore SHA-1 for Firebase
+        run: |
+          keytool -list -v -keystore ${{ github.workspace }}/keystore.jks \
+            -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
+            -alias ${{ secrets.KEY_ALIAS }} 2>&1 | grep SHA1
+
+      - name: Build Release AAB
+        run: ./gradlew :app:bundleRelease --no-daemon
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Build Release APK
+        run: ./gradlew :app:assembleRelease --no-daemon
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload Release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: Deploy to Play Store (Internal Track)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.culinary.orderapp
+          releaseFiles: app/build/outputs/bundle/release/*.aab
+          track: internal
+          status: completed
