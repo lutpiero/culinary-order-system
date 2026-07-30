@@ -55,20 +55,45 @@ fun LoginScreen(
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                account.idToken?.let { idToken ->
-                    viewModel.handleGoogleSignIn(idToken)
-                } ?: run {
-                    Logger.e("No ID token received", null, "LoginScreen")
-                }
-            } catch (e: ApiException) {
-                Logger.e("Google sign-in failed", e, "LoginScreen")
+        Logger.d(
+            "Google callback: resultCode=${result.resultCode}, " +
+                "intent=${result.data != null}",
+            "LoginScreen"
+        )
+
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val idToken = account.idToken
+
+            if (idToken.isNullOrBlank()) {
+                Logger.e("Google Sign-In returned no ID token", null, "LoginScreen")
+                viewModel.handleGoogleSignInError(
+                    "Google Sign-In returned no ID token. Check default_web_client_id."
+                )
+                return@rememberLauncherForActivityResult
             }
-        } else {
-            Logger.e("Google sign-in returned resultCode=${result.resultCode}", null, "LoginScreen")
+
+            Logger.d("Google Sign-In account received: ${account.email}", "LoginScreen")
+            viewModel.handleGoogleSignIn(idToken)
+        } catch (e: ApiException) {
+            val errorMessage = when (e.statusCode) {
+                10 -> "Google Sign-In configuration error (code 10). The package name or SHA-1 does not match Firebase."
+                12500 -> "Google Sign-In failed (code 12500). Verify OAuth configuration and Google provider settings."
+                12501 -> "Google Sign-In was cancelled (code 12501)."
+                12502 -> "Another Google Sign-In operation is already running."
+                7 -> "Network error while contacting Google."
+                8 -> "Internal Google Sign-In error."
+                else -> "Google Sign-In failed: code=${e.statusCode}, message=${e.localizedMessage}"
+            }
+
+            Logger.e(errorMessage, e, "LoginScreen")
+            viewModel.handleGoogleSignInError(errorMessage)
+        } catch (e: Exception) {
+            val errorMessage = "Unexpected Google Sign-In error: ${e.localizedMessage}"
+            Logger.e(errorMessage, e, "LoginScreen")
+            viewModel.handleGoogleSignInError(errorMessage)
         }
     }
 
