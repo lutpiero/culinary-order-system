@@ -12,6 +12,7 @@
     <string name="batal">Batal</string>
     <string name="kembali">Kembali</string>
     <string name="loading">Memuat...</string>
+    <string name="default_web_client_id">267860527451-ic4o5kn4rh2pj8i4426pjhmb4o59qrnq.apps.googleusercontent.com</string>
     <string name="error_generic">Terjadi kesalahan. Coba lagi.</string>
     <string name="no_orders">Tidak ada pesanan</string>
     <string name="total">Total</string>
