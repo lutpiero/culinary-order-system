@@ -55,10 +55,15 @@ class AuthRepositoryImpl @Inject constructor(
                 userDoc.toObject(UserDto::class.java)?.toDomain()
                     ?: return Result.failure(Exception("Failed to parse user data"))
             } else {
-                // New user - check if this is the first user (should be owner)
-                val usersCount = usersCollection.get().await().size()
-                val roleId = if (usersCount == 0) SystemRoles.OWNER else SystemRoles.FINANCE
-                val roleName = if (usersCount == 0) "Owner" else "Finance"
+                // New user - check if an owner already exists
+                val hasOwner = usersCollection
+                    .whereEqualTo("roleId", SystemRoles.OWNER)
+                    .get()
+                    .await()
+                    .documents
+                    .isNotEmpty()
+                val roleId = if (hasOwner) SystemRoles.FINANCE else SystemRoles.OWNER
+                val roleName = if (hasOwner) "Finance" else "Owner"
                 
                 // Create new user
                 val newUser = User(
@@ -99,13 +104,22 @@ class AuthRepositoryImpl @Inject constructor(
                 userDoc.toObject(UserDto::class.java)?.toDomain()
                     ?: return Result.failure(Exception("Failed to parse user data"))
             } else {
+                val hasOwner = usersCollection
+                    .whereEqualTo("roleId", SystemRoles.OWNER)
+                    .get()
+                    .await()
+                    .documents
+                    .isNotEmpty()
+                val roleId = if (hasOwner) SystemRoles.FINANCE else SystemRoles.OWNER
+                val roleName = if (hasOwner) "Finance" else "Owner"
+
                 val newUser = User(
                     id = firebaseUser.uid,
                     email = firebaseUser.email ?: email,
                     displayName = firebaseUser.displayName ?: email.substringBefore("@"),
                     photoUrl = firebaseUser.photoUrl?.toString(),
-                    roleId = SystemRoles.FINANCE,
-                    roleName = "Finance",
+                    roleId = roleId,
+                    roleName = roleName,
                     isActive = true,
                     createdAt = Timestamp.now().toDate(),
                     lastLoginAt = Timestamp.now().toDate()
