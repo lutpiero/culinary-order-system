@@ -18,6 +18,12 @@ env:
 permissions:
   contents: read
 
+val hasCiSigningConfig =
+  !System.getenv("KEYSTORE_FILE").isNullOrBlank() &&
+  !System.getenv("KEYSTORE_PASSWORD").isNullOrBlank() &&
+  !System.getenv("KEY_ALIAS").isNullOrBlank() &&
+  !System.getenv("KEY_PASSWORD").isNullOrBlank()
+
 jobs:
   build-and-test:
     name: Build & Test
@@ -85,6 +91,14 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Verify APK signing certificate
+        run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          BUILD_TOOLS=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)
+
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" \
+            verify --print-certs "$APK"
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4

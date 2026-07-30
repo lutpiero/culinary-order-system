@@ -7,6 +7,12 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val hasCiSigningConfig =
+    !System.getenv("KEYSTORE_FILE").isNullOrBlank() &&
+    !System.getenv("KEYSTORE_PASSWORD").isNullOrBlank() &&
+    !System.getenv("KEY_ALIAS").isNullOrBlank() &&
+    !System.getenv("KEY_PASSWORD").isNullOrBlank()
+
 android {
     namespace = "com.culinary.orderapp"
     compileSdk = 35
@@ -23,38 +29,54 @@ android {
             useSupportLibrary = true
         }
     }
-
+    
     signingConfigs {
-        create("release") {
-            storeFile = file(System.getenv("KEYSTORE_FILE") ?: "keystore.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias = System.getenv("KEY_ALIAS") ?: ""
-            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+        create("ci") {
+            if (hasCiSigningConfig) {
+                storeFile = file(System.getenv("KEYSTORE_FILE"))
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            signingConfig = signingConfigs.getByName("release")
-        }
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+
+            if (!System.getenv("KEYSTORE_FILE").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("ci")
+            }
+        }
+
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+
+            proguardFiles(
+                getDefaultProguardFile(
+                    "proguard-android-optimize.txt"
+                ),
+                "proguard-rules.pro"
+            )
+
+            if (!System.getenv("KEYSTORE_FILE").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("ci")
+            }
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = "17"
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
