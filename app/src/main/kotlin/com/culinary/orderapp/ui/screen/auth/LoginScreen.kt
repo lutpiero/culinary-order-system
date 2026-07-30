@@ -41,10 +41,9 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     
-    val webClientId = stringResource(id = R.string.default_web_client_id)
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(webClientId)
+            .requestIdToken(context.getString(id = R.string.default_web_client_id))
             .requestEmail()
             .build()
     }
