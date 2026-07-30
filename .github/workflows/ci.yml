@@ -44,8 +44,19 @@ jobs:
 
       - name: Create google-services.json
         env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON_DEBUG }}
-        run: echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_DEBUG }}
+        run: echo "$GOOGLE_SERVICES_JSON_B64" | base64 --decode > app/google-services.json
+
+     - name: Verify google-services.json
+        run: |
+          echo "Checking Project ID:"
+          jq -r '.project_info.project_id' app/google-services.json
+          
+          echo "Checking Package Name:"
+          jq -r '.client[0].client_info.android_client_info.package_name' app/google-services.json
+          
+          echo "Checking Web Client ID exists:"
+          jq -r '.client[0].oauth_client[] | select(.client_type == 3) | .client_id' app/google-services.json
 
       - name: Decode Keystore
         run: |
