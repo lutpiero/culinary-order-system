@@ -3,8 +3,6 @@ package com.culinary.orderapp.ui.screen.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.culinary.orderapp.domain.model.User
-import com.culinary.orderapp.domain.usecase.InitializeDefaultSettingsUseCase
-import com.culinary.orderapp.domain.usecase.InitializeSystemRolesUseCase
 import com.culinary.orderapp.domain.usecase.SignInWithEmailPasswordUseCase
 import com.culinary.orderapp.domain.usecase.SignInWithGoogleUseCase
 import com.culinary.orderapp.util.Logger
@@ -25,42 +23,11 @@ data class LoginUiState(
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val signInWithGoogle: SignInWithGoogleUseCase,
-    private val signInWithEmailPassword: SignInWithEmailPasswordUseCase,
-    private val initializeSystemRoles: InitializeSystemRolesUseCase,
-    private val initializeDefaultSettings: InitializeDefaultSettingsUseCase
+    private val signInWithEmailPassword: SignInWithEmailPasswordUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LoginUiState())
+    private val _uiState = MutableStateFlow(LoginUiState(isInitialized = true))
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
-
-    init {
-        initializeApp()
-    }
-
-    private fun initializeApp() {
-        viewModelScope.launch {
-            try {
-                Logger.d("Initializing app data", TAG)
-                
-                initializeSystemRoles().onFailure { e ->
-                    Logger.e("Failed to initialize system roles", e, TAG)
-                }
-                
-                initializeDefaultSettings().onFailure { e ->
-                    Logger.e("Failed to initialize default settings", e, TAG)
-                }
-                
-                _uiState.value = _uiState.value.copy(isInitialized = true)
-                Logger.i("App initialization completed", TAG)
-            } catch (e: Exception) {
-                Logger.e("Error during app initialization", e, TAG)
-                _uiState.value = _uiState.value.copy(
-                    isInitialized = true,
-                    errorMessage = "Initialization error: ${e.message}"
-                )
-            }
-        }
-    }
 
     fun handleGoogleSignIn(idToken: String) {
         viewModelScope.launch {

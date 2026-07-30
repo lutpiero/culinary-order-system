@@ -24,6 +24,8 @@ import androidx.navigation.compose.rememberNavController
 import com.culinary.orderapp.domain.state.CurrentUserState
 import com.culinary.orderapp.domain.usecase.GetCurrentUserUseCase
 import com.culinary.orderapp.domain.usecase.GetRoleByIdUseCase
+import com.culinary.orderapp.domain.usecase.InitializeDefaultSettingsUseCase
+import com.culinary.orderapp.domain.usecase.InitializeSystemRolesUseCase
 import com.culinary.orderapp.domain.usecase.ObserveAuthStateUseCase
 import com.culinary.orderapp.ui.navigation.AppNavHost
 import com.culinary.orderapp.ui.navigation.Screen
@@ -49,6 +51,12 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var currentUserState: CurrentUserState
 
+    @Inject
+    lateinit var initializeSystemRoles: InitializeSystemRolesUseCase
+
+    @Inject
+    lateinit var initializeDefaultSettings: InitializeDefaultSettingsUseCase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -58,7 +66,9 @@ class MainActivity : ComponentActivity() {
                     observeAuthState = observeAuthState,
                     getCurrentUser = getCurrentUser,
                     getRoleById = getRoleById,
-                    currentUserState = currentUserState
+                    currentUserState = currentUserState,
+                    initializeSystemRoles = initializeSystemRoles,
+                    initializeDefaultSettings = initializeDefaultSettings
                 )
             }
         }
@@ -70,12 +80,17 @@ private fun MainContent(
     observeAuthState: ObserveAuthStateUseCase,
     getCurrentUser: GetCurrentUserUseCase,
     getRoleById: GetRoleByIdUseCase,
-    currentUserState: CurrentUserState
+    currentUserState: CurrentUserState,
+    initializeSystemRoles: InitializeSystemRolesUseCase,
+    initializeDefaultSettings: InitializeDefaultSettingsUseCase
 ) {
     val authState by observeAuthState().collectAsState(initial = null)
 
     LaunchedEffect(authState) {
         if (authState != null) {
+            initializeSystemRoles()
+            initializeDefaultSettings()
+
             val userResult = getCurrentUser()
             userResult.onSuccess { user ->
                 if (user != null) {
