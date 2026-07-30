@@ -18,12 +18,6 @@ env:
 permissions:
   contents: read
 
-val hasCiSigningConfig =
-  !System.getenv("KEYSTORE_FILE").isNullOrBlank() &&
-  !System.getenv("KEYSTORE_PASSWORD").isNullOrBlank() &&
-  !System.getenv("KEY_ALIAS").isNullOrBlank() &&
-  !System.getenv("KEY_PASSWORD").isNullOrBlank()
-
 jobs:
   build-and-test:
     name: Build & Test
