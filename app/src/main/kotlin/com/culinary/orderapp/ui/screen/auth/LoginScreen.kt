@@ -43,7 +43,7 @@ fun LoginScreen(
     
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(id = R.string.default_web_client_id))
+            .requestIdToken(context.getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
     }
