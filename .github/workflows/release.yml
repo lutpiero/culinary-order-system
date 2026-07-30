@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      deploy_to_play_store:
+        description: 'Deploy to Play Store'
+        required: false
+        default: 'false'
+        type: boolean
 
 env:
   JAVA_VERSION: '17'
