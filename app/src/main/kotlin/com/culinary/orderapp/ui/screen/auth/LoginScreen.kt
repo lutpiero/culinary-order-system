@@ -71,7 +71,7 @@ fun LoginScreen(
                 Logger.e("Google sign-in failed", e, "LoginScreen")
             }
         } else {
-            Logger.e("Google sign-in returned resultCode=$resultCode", null, "LoginScreen")
+            Logger.e("Google sign-in returned resultCode=${result.resultCode}", null, "LoginScreen")
         }
     }
 
