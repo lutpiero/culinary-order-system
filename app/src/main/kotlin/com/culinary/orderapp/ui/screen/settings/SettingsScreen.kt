@@ -22,10 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.culinary.orderapp.domain.model.Permission
+import com.culinary.orderapp.domain.state.CurrentUserState
+import com.culinary.orderapp.ui.component.RequirePermission
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    currentUserState: CurrentUserState,
     onNavigateToUserManagement: () -> Unit = {},
     onNavigateToRoleManagement: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
@@ -48,6 +52,7 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            RequirePermission(Permission.VIEW_SETTINGS, currentUserState) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -144,31 +149,6 @@ fun SettingsScreen(
                 }
             }
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "Manajemen",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    SettingsNavRow(
-                        icon = Icons.Default.People,
-                        title = "Manajemen Pengguna",
-                        subtitle = "Kelola pengguna dan peran mereka",
-                        onClick = onNavigateToUserManagement
-                    )
-                    HorizontalDivider()
-                    SettingsNavRow(
-                        icon = Icons.Default.Security,
-                        title = "Manajemen Peran",
-                        subtitle = "Kelola peran dan izin akses",
-                        onClick = onNavigateToRoleManagement
-                    )
-                }
-            }
-
             if (uiState.errorMessage != null) {
                 Text(
                     uiState.errorMessage ?: "",
@@ -197,6 +177,32 @@ fun SettingsScreen(
                     )
                 } else {
                     Text("Simpan Pengaturan", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Manajemen",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    SettingsNavRow(
+                        icon = Icons.Default.People,
+                        title = "Manajemen Pengguna",
+                        subtitle = "Kelola pengguna dan peran mereka",
+                        onClick = onNavigateToUserManagement
+                    )
+                    HorizontalDivider()
+                    SettingsNavRow(
+                        icon = Icons.Default.Security,
+                        title = "Manajemen Peran",
+                        subtitle = "Kelola peran dan izin akses",
+                        onClick = onNavigateToRoleManagement
+                    )
                 }
             }
 

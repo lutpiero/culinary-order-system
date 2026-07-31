@@ -164,9 +164,7 @@ private fun AuthenticatedApp(currentUserState: CurrentUserState) {
                             is Screen.QrCode -> currentUserState.hasPermission(
                                 com.culinary.orderapp.domain.model.Permission.VIEW_QR_CODE
                             )
-                            is Screen.Settings -> currentUserState.hasPermission(
-                                com.culinary.orderapp.domain.model.Permission.VIEW_SETTINGS
-                            )
+                            is Screen.Settings -> true
                             else -> true
                         }
 

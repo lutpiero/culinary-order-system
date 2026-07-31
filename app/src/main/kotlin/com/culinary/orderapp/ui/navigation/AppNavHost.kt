@@ -139,6 +139,7 @@ fun AppNavHost(
 
         composable(Screen.Settings.route) {
             SettingsScreen(
+                currentUserState = currentUserState,
                 onNavigateToUserManagement = {
                     navController.navigate(Screen.UserManagement.route)
                 },
