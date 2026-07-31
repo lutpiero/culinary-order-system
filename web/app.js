@@ -611,29 +611,37 @@ async function placeOrder() {
 
     // Use transaction to check and update stock atomically
     const orderId = await runTransaction(state.db, async (transaction) => {
-      // Check and update stock for each item
+      // Phase 1: Read all menu items first (Firestore requires all reads before all writes)
+      const stockUpdates = [];
       for (const item of orderItems) {
         const menuItemRef = doc(state.db, "menuItems", item.menuItemId);
         const menuItemDoc = await transaction.get(menuItemRef);
-        
+
         if (!menuItemDoc.exists()) {
           throw new Error(`Menu item ${item.menuItemName} tidak ditemukan`);
         }
-        
+
         const menuData = menuItemDoc.data();
         const currentStock = menuData.stock;
-        
+
         // If stock is tracked (not null/undefined), check and decrease it
         if (currentStock !== null && currentStock !== undefined) {
           if (currentStock < item.quantity) {
             throw new Error(`Stok ${item.menuItemName} tidak cukup. Tersedia: ${currentStock}, Diminta: ${item.quantity}`);
           }
-          
-          const newStock = currentStock - item.quantity;
-          transaction.update(menuItemRef, { stock: newStock });
+
+          stockUpdates.push({
+            ref: menuItemRef,
+            newStock: currentStock - item.quantity
+          });
         }
       }
-      
+
+      // Phase 2: All writes after all reads
+      for (const update of stockUpdates) {
+        transaction.update(update.ref, { stock: update.newStock });
+      }
+
       // Create the order
       const orderRef = doc(state.db, "orders", generateId());
       transaction.set(orderRef, order);
