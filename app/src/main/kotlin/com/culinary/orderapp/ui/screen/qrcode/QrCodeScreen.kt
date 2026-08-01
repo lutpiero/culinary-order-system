@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,20 +35,19 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.culinary.orderapp.util.generateQrCode
 
 /**
  * Screen for generating table QR codes.
  * Each QR code encodes a URL that customers scan to open the web menu.
  *
- * The URL pattern: https://<your-domain>/menu?table=<tableNumber>
- * Replace the base URL with your actual deployed web frontend URL.
+ * The URL is built from the Web URL configured in Settings: <webUrl>?table=<tableNumber>
  */
-private const val MENU_BASE_URL = "https://culinary-order.web.app/menu"
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QrCodeScreen() {
+fun QrCodeScreen(viewModel: QrCodeViewModel = hiltViewModel()) {
+    val uiState by viewModel.uiState.collectAsState()
     var tableNumber by remember { mutableStateOf("") }
     var generatedQrBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
 
@@ -74,6 +74,14 @@ fun QrCodeScreen() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
+            if (uiState.webUrl.isBlank()) {
+                Text(
+                    text = "Web URL belum diatur. Silakan atur Web URL di halaman Pengaturan terlebih dahulu.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -89,12 +97,12 @@ fun QrCodeScreen() {
                 )
                 Button(
                     onClick = {
-                        if (tableNumber.isNotBlank()) {
-                            val url = "$MENU_BASE_URL?table=${tableNumber.trim()}"
+                        if (tableNumber.isNotBlank() && uiState.webUrl.isNotBlank()) {
+                            val url = "${uiState.webUrl}?table=${tableNumber.trim()}"
                             generatedQrBitmap = generateQrCode(url)
                         }
                     },
-                    enabled = tableNumber.isNotBlank()
+                    enabled = tableNumber.isNotBlank() && uiState.webUrl.isNotBlank()
                 ) {
                     Text("Generate")
                 }
@@ -111,6 +119,13 @@ fun QrCodeScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        if (uiState.businessName.isNotBlank()) {
+                            Text(
+                                text = uiState.businessName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                         Text(
                             text = "Meja $tableNumber",
                             style = MaterialTheme.typography.titleLarge,
@@ -122,7 +137,7 @@ fun QrCodeScreen() {
                             modifier = Modifier.size(240.dp)
                         )
                         Text(
-                            text = "$MENU_BASE_URL?table=$tableNumber",
+                            text = "${uiState.webUrl}?table=$tableNumber",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

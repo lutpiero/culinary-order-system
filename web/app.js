@@ -44,6 +44,7 @@ const state = {
 document.addEventListener("DOMContentLoaded", async () => {
   parseTableFromUrl();
   await initFirebase();
+  await loadSettings();
   await loadMenu();
   await loadOrderHistory();
 });
@@ -79,16 +80,38 @@ async function initFirebase() {
     const { initializeApp } = await import(
       "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js"
     );
-    const { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy } = await import(
+    const { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy, doc, getDoc } = await import(
       "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js"
     );
     const app = initializeApp(FIREBASE_CONFIG);
     state.db = getFirestore(app);
     // Expose Firestore helpers on state for later use
-    state._firestore = { collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy };
+    state._firestore = { collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy, doc, getDoc };
   } catch (err) {
     console.error("Firebase init failed:", err);
     showError("Tidak dapat terhubung ke server.");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Load Settings from Firestore
+// ---------------------------------------------------------------------------
+async function loadSettings() {
+  try {
+    if (!state.db) return;
+    const { doc, getDoc } = state._firestore;
+    const settingsSnap = await getDoc(doc(state.db, "settings", "settings"));
+    if (settingsSnap.exists()) {
+      const data = settingsSnap.data();
+      const businessName = data.businessName || "";
+      if (businessName) {
+        const titleEl = document.querySelector(".header-title");
+        if (titleEl) titleEl.textContent = businessName;
+        document.title = `${businessName} – Meja ${state.tableNumber}`;
+      }
+    }
+  } catch (err) {
+    console.error("loadSettings error:", err);
   }
 }
 
