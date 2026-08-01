@@ -63,7 +63,18 @@ fun MenuManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Manajemen Menu", fontWeight = FontWeight.Bold) },
+                title = {
+                    Column {
+                        if (uiState.businessName.isNotBlank()) {
+                            Text(
+                                text = uiState.businessName,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                        Text("Manajemen Menu", fontWeight = FontWeight.Bold)
+                    }
+                },
                 actions = {
                     TextButton(onClick = onManageCategories) {
                         Icon(

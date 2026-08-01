@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.culinary.orderapp.domain.model.SalesSummary
 import com.culinary.orderapp.domain.usecase.GetSalesSummaryUseCase
+import com.culinary.orderapp.domain.usecase.ObserveSettingsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,12 +24,14 @@ data class FinanceUiState(
     val period: FinancePeriod = FinancePeriod.DAILY,
     val summary: SalesSummary? = null,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val businessName: String = ""
 )
 
 @HiltViewModel
 class FinanceViewModel @Inject constructor(
-    private val getSalesSummary: GetSalesSummaryUseCase
+    private val getSalesSummary: GetSalesSummaryUseCase,
+    private val observeSettings: ObserveSettingsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FinanceUiState(isLoading = true))
@@ -36,6 +39,13 @@ class FinanceViewModel @Inject constructor(
 
     init {
         loadSummary(FinancePeriod.DAILY)
+        viewModelScope.launch {
+            observeSettings().collect { settings ->
+                if (settings != null) {
+                    _uiState.value = _uiState.value.copy(businessName = settings.businessName)
+                }
+            }
+        }
     }
 
     fun loadSummary(period: FinancePeriod) {

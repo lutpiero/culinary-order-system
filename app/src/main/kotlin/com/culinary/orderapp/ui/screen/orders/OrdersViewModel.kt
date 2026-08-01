@@ -7,6 +7,7 @@ import com.culinary.orderapp.domain.model.OrderStatus
 import com.culinary.orderapp.domain.usecase.CancelOrderUseCase
 import com.culinary.orderapp.domain.usecase.GetOrderByIdUseCase
 import com.culinary.orderapp.domain.usecase.ObserveOrdersUseCase
+import com.culinary.orderapp.domain.usecase.ObserveSettingsUseCase
 import com.culinary.orderapp.domain.usecase.UpdateOrderStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,8 @@ data class OrdersUiState(
     val orders: List<Order> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val selectedTab: Int = 0
+    val selectedTab: Int = 0,
+    val businessName: String = ""
 )
 
 data class OrderDetailUiState(
@@ -35,7 +37,8 @@ class OrdersViewModel @Inject constructor(
     private val observeOrders: ObserveOrdersUseCase,
     private val updateOrderStatus: UpdateOrderStatusUseCase,
     private val cancelOrder: CancelOrderUseCase,
-    private val getOrderById: GetOrderByIdUseCase
+    private val getOrderById: GetOrderByIdUseCase,
+    private val observeSettings: ObserveSettingsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrdersUiState(isLoading = true))
@@ -46,6 +49,13 @@ class OrdersViewModel @Inject constructor(
 
     init {
         loadOrders()
+        viewModelScope.launch {
+            observeSettings().collect { settings ->
+                if (settings != null) {
+                    _uiState.value = _uiState.value.copy(businessName = settings.businessName)
+                }
+            }
+        }
     }
 
     fun loadOrders(status: OrderStatus? = null) {
