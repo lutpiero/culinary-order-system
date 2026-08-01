@@ -57,21 +57,22 @@ data class OrderItem(
  * Represents a complete customer order.
  */
 data class Order(
-    val id: String = UUID.randomUUID().toString(),
-    val tableNumber: String = "",
-    val customerName: String = "",
-    val items: List<OrderItem> = emptyList(),
-    val status: OrderStatus = OrderStatus.PENDING,
-    val paymentMethod: PaymentMethod = PaymentMethod.CASHIER,
-    val notes: String = "",
-    val createdAt: Date = Date(),
-    val updatedAt: Date = Date(),
-    val estimatedReadyMinutes: Int = 15,
-    val restaurantId: String = ""
-) {
-    val totalAmount: Long
-        get() = items.sumOf { it.subtotal }
-}
+     val id: String = UUID.randomUUID().toString(),
+     val tableNumber: String = "",
+     val sessionId: String = "",    // Unique session ID to identify customer visiting a table
+     val customerName: String = "",
+     val items: List<OrderItem> = emptyList(),
+     val status: OrderStatus = OrderStatus.PENDING,
+     val paymentMethod: PaymentMethod = PaymentMethod.CASHIER,
+     val notes: String = "",
+     val createdAt: Date = Date(),
+     val updatedAt: Date = Date(),
+     val estimatedReadyMinutes: Int = 15,
+     val restaurantId: String = ""
+ ) {
+     val totalAmount: Long
+         get() = items.sumOf { it.subtotal }
+ }
 
 /**
  * Summary data used for the finance dashboard.
