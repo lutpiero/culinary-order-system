@@ -488,6 +488,10 @@ function toggleCart() {
 }
 
 function closeCart() {
+  document.getElementById("cartDrawer").classList.remove("open");
+  document.getElementById("overlay").style.display = "none";
+  document.body.style.overflow = "";
+}
 
 // ---------------------------------------------------------------------------
 // Order History
@@ -560,11 +564,6 @@ function renderOrderHistory() {
         <div class="cart-item-price">${formatRupiah(totalAmount)}</div>
       </div>`;
   }).join("");
-}
-
-  document.getElementById("cartDrawer").classList.remove("open");
-  document.getElementById("overlay").style.display = "none";
-  document.body.style.overflow = "";
 }
 
 // ---------------------------------------------------------------------------
