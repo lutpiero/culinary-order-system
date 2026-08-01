@@ -17,6 +17,7 @@ Sistem manajemen pesanan kuliner Indonesia dengan dua sisi: **Aplikasi Android u
 - Responsif dan mobile-first
 - Navigasi menu dua level: item utama → topping/opsi bersyarat
 - Checkout dengan pilihan pembayaran: **QRIS**, **Transfer Bank**, **Bayar di Kasir**
+- **Multi-Customer Table Support** – Mendukung beberapa pelanggan memesan dari meja yang sama dengan riwayat pesanan terpisah
 - Bahasa Indonesia
 
 ---
@@ -111,6 +112,22 @@ Pelanggan scan QR → Web Menu → Pilih item + topping → Checkout → Pilih p
                                                                                           ↓
                                              Penjual konfirmasi → Antrian → Diproses → Siap → Disajikan
 ```
+
+---
+
+## Dokumentasi Fitur
+
+### Multi-Customer Table Support
+Sistem sekarang mendukung beberapa pelanggan memesan dari meja yang sama dengan riwayat pesanan yang terpisah untuk setiap pelanggan.
+
+- 📖 [Multi-Customer Table Guide](MULTI_CUSTOMER_TABLE_GUIDE.md) – Panduan lengkap tentang fitur multi-pelanggan, cara kerja session ID, dan skenario penggunaan
+- 🧪 [Testing Multi-Customer Sessions](TESTING_MULTI_CUSTOMER_SESSIONS.md) – Panduan pengujian komprehensif dengan 10+ skenario pengujian
+
+### Setup dan Troubleshooting
+- 📖 [Firebase Setup Guide](FIREBASE_SETUP_GUIDE.md) – Panduan setup Firebase project
+- 📖 [Firestore Rules Guide](FIRESTORE_RULES_GUIDE.md) – Panduan security rules Firestore
+- 🔧 [Android Fix Plan](ANDROID_FIX_PLAN.md) – Solusi masalah umum Android
+- 🌐 [Web App Troubleshooting](WEB_APP_TROUBLESHOOTING.md) – Troubleshooting web app
 
 ---
 
