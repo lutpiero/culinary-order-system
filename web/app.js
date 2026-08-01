@@ -27,10 +27,11 @@ const FIREBASE_CONFIG = window.FIREBASE_CONFIG || {
 // ---------------------------------------------------------------------------
 const state = {
   tableNumber: "",
+  sessionId:   "",    // Unique session ID for this customer's visit
   categories:  [],
   menuItems:   [],
   cart:        [],    // [{ menuItem, quantity, selectedToppings, notes, subtotal }]
-  orders:      [],    // User's order history for this table
+  orders:      [],    // User's order history for this session
   activeCategory: "all",
   isLoading:   true,
   db:          null,
@@ -50,6 +51,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 function parseTableFromUrl() {
   const params = new URLSearchParams(window.location.search);
   state.tableNumber = params.get("table") || "1";
+  
+  // Generate or retrieve session ID from localStorage
+  // Session ID persists within the same browser tab/session for the same table
+  const sessionStorageKey = `culinary_session_table_${state.tableNumber}`;
+  let sessionId = sessionStorage.getItem(sessionStorageKey);
+  
+  // Check if sessionId in URL parameter (for direct links)
+  const urlSessionId = params.get("session");
+  if (urlSessionId) {
+    sessionId = urlSessionId;
+  }
+  
+  // Generate new session ID if not found
+  if (!sessionId) {
+    sessionId = generateId();
+    sessionStorage.setItem(sessionStorageKey, sessionId);
+  }
+  
+  state.sessionId = sessionId;
   document.getElementById("tableLabel").textContent = `Meja ${state.tableNumber}`;
   document.title = `Menu – Meja ${state.tableNumber}`;
 }
@@ -112,10 +132,12 @@ async function loadOrderHistory() {
     if (!state.db) return;
     const { collection, query, where, onSnapshot, orderBy } = state._firestore;
 
-    // Listen to orders for this table (excluding cancelled)
+    // Listen to orders for this session
+    // Filter by both tableNumber and sessionId to support multiple customers at same table
     const ordersQuery = query(
       collection(state.db, "orders"),
       where("tableNumber", "==", state.tableNumber),
+      where("sessionId", "==", state.sessionId),
       orderBy("createdAt", "desc")
     );
 
@@ -594,6 +616,7 @@ async function placeOrder() {
 
     const order = {
       tableNumber:   state.tableNumber,
+      sessionId:     state.sessionId,    // Unique session ID to identify this customer
       customerName:  customerName,
       items:         orderItems,
       status:        "PENDING",
