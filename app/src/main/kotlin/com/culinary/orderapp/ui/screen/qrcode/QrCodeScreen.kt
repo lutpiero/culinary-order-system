@@ -53,7 +53,18 @@ fun QrCodeScreen(viewModel: QrCodeViewModel = hiltViewModel()) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("QR Code Meja", fontWeight = FontWeight.Bold) },
+            title = {
+                Column {
+                    if (uiState.businessName.isNotBlank()) {
+                        Text(
+                            text = uiState.businessName,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                    Text("QR Code Meja", fontWeight = FontWeight.Bold)
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 titleContentColor = Color.White

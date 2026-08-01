@@ -8,6 +8,7 @@ import com.culinary.orderapp.domain.model.ToppingGroup
 import com.culinary.orderapp.domain.usecase.DeleteMenuItemUseCase
 import com.culinary.orderapp.domain.usecase.ObserveCategoriesUseCase
 import com.culinary.orderapp.domain.usecase.ObserveMenuItemsUseCase
+import com.culinary.orderapp.domain.usecase.ObserveSettingsUseCase
 import com.culinary.orderapp.domain.usecase.SaveCategoryUseCase
 import com.culinary.orderapp.domain.usecase.SaveMenuItemUseCase
 import com.culinary.orderapp.domain.usecase.ToggleMenuItemAvailabilityUseCase
@@ -25,7 +26,8 @@ data class MenuUiState(
     val selectedCategoryId: String? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val businessName: String = ""
 )
 
 data class MenuItemFormState(
@@ -42,7 +44,8 @@ class MenuViewModel @Inject constructor(
     private val saveMenuItem: SaveMenuItemUseCase,
     private val deleteMenuItem: DeleteMenuItemUseCase,
     private val toggleAvailability: ToggleMenuItemAvailabilityUseCase,
-    private val saveCategory: SaveCategoryUseCase
+    private val saveCategory: SaveCategoryUseCase,
+    private val observeSettings: ObserveSettingsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MenuUiState(isLoading = true))
@@ -54,6 +57,13 @@ class MenuViewModel @Inject constructor(
     init {
         loadCategories()
         loadMenuItems()
+        viewModelScope.launch {
+            observeSettings().collect { settings ->
+                if (settings != null) {
+                    _uiState.value = _uiState.value.copy(businessName = settings.businessName)
+                }
+            }
+        }
     }
 
     private fun loadCategories() {
