@@ -75,6 +75,7 @@ data class OrderItemDto(
 data class OrderDto(
     val id: String = "",
     val tableNumber: String = "",
+    val sessionId: String = "",    // Unique session ID to identify customer
     val customerName: String = "",
     val items: List<OrderItemDto> = emptyList(),
     val status: String = OrderStatus.PENDING.name,
@@ -88,6 +89,7 @@ data class OrderDto(
     fun toDomain() = Order(
         id = id,
         tableNumber = tableNumber,
+        sessionId = sessionId,
         customerName = customerName,
         items = items.map { it.toDomain() },
         status = runCatching { OrderStatus.valueOf(status) }.getOrDefault(OrderStatus.PENDING),
@@ -103,6 +105,7 @@ data class OrderDto(
         fun fromDomain(order: Order) = OrderDto(
             id = order.id,
             tableNumber = order.tableNumber,
+            sessionId = order.sessionId,
             customerName = order.customerName,
             items = order.items.map { OrderItemDto.fromDomain(it) },
             status = order.status.name,
