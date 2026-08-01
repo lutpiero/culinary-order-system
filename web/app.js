@@ -549,7 +549,7 @@ function renderOrderHistory() {
     }, 0);
     
     return `
-      <div class="cart-item" style="border-left: 3px solid ${status.color}">
+      <div class="cart-item" style="border-left: 3px solid ${status.color}; cursor: pointer;" onclick="openOrderDetailModal('${escHtml(order.id)}')">
         <div class="cart-item-info">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <div class="cart-item-name">#${escHtml(order.id.slice(-6).toUpperCase())}</div>
@@ -564,6 +564,97 @@ function renderOrderHistory() {
         <div class="cart-item-price">${formatRupiah(totalAmount)}</div>
       </div>`;
   }).join("");
+}
+
+function openOrderDetailModal(orderId) {
+  const order = state.orders.find(o => o.id === orderId);
+  if (!order) return;
+
+  const modal = document.getElementById("itemModal");
+  const content = document.getElementById("itemModalContent");
+
+  const statusLabels = {
+   PENDING: { text: "Menunggu", color: "#FF9800" },
+   PREPARING: { text: "Diproses", color: "#2196F3" },
+   READY: { text: "Siap", color: "#4CAF50" },
+   COMPLETED: { text: "Selesai", color: "#9E9E9E" },
+   CANCELLED: { text: "Dibatalkan", color: "#F44336" }
+  };
+
+  const status = statusLabels[order.status] || statusLabels.PENDING;
+  const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date();
+  const dateStr = orderDate.toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "2-digit" });
+  const timeStr = orderDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+
+  const itemsList = (order.items || []).map(item => {
+   const toppingText = (item.selectedToppings || []).length > 0
+     ? ` + ${(item.selectedToppings || []).map(t => t.name).join(", ")}`
+     : "";
+   const itemTotal = ((item.unitPrice + ((item.selectedToppings || []).reduce((s, t) => s + (t.additionalPrice || 0), 0))) * item.quantity);
+   return `
+     <div style="padding: 12px 0; border-bottom: 1px solid #e0e0e0;">
+       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 4px;">
+         <div>
+           <div style="font-weight: 600; font-size: 14px;">${escHtml(item.menuItemName)}</div>
+           ${toppingText ? `<div style="font-size: 12px; color: #999; margin-top: 2px;">Tambahan: ${escHtml(toppingText)}</div>` : ""}
+         </div>
+         <div style="font-weight: 600; color: var(--primary);">${formatRupiah(itemTotal)}</div>
+       </div>
+       <div style="font-size: 12px; color: #999;">Jumlah: ${item.quantity}</div>
+     </div>`;
+  }).join("");
+
+  const totalAmount = (order.items || []).reduce((sum, item) => {
+   const toppingTotal = (item.selectedToppings || []).reduce((s, t) => s + (t.additionalPrice || 0), 0);
+   return sum + ((item.unitPrice + toppingTotal) * item.quantity);
+  }, 0);
+
+  content.innerHTML = `
+   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+     <h2 class="modal-name" style="margin-bottom: 0;">#${escHtml(order.id.slice(-6).toUpperCase())}</h2>
+     <span style="background: ${status.color}; color: white; padding: 6px 14px; border-radius: 12px; font-size: 12px; font-weight: 500;">
+       ${status.text}
+     </span>
+   </div>
+   <div style="font-size: 13px; color: #999; margin-bottom: 16px;">
+     <div>${dateStr}</div>
+     <div>${timeStr}</div>
+   </div>
+   <div style="background: #f9f9f9; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+     <div style="font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; margin-bottom: 8px;">Item Pesanan</div>
+     ${itemsList}
+   </div>
+   <div style="background: var(--surface-2); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+       <span>Subtotal</span>
+       <span>${formatRupiah(totalAmount)}</span>
+     </div>
+     <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 16px; color: var(--primary);">
+       <span>Total</span>
+       <span>${formatRupiah(totalAmount)}</span>
+     </div>
+   </div>
+   ${order.notes ? `
+     <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+       <div style="font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; margin-bottom: 4px;">Catatan</div>
+       <div style="font-size: 14px; color: #666;">${escHtml(order.notes)}</div>
+     </div>
+   ` : ""}
+   ${order.estimatedReadyMinutes ? `
+     <div style="background: #fff3e0; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+       <div style="font-size: 13px; color: #ff9800; font-weight: 500;">⏱️ Estimasi siap dalam ${order.estimatedReadyMinutes} menit</div>
+     </div>
+   ` : ""}`;
+
+  modal.style.display = "flex";
+  document.body.style.overflow = "hidden";
+
+  modal.onclick = (e) => { if (e.target === modal) closeOrderDetailModal(); };
+}
+
+function closeOrderDetailModal() {
+  document.getElementById("itemModal").style.display = "none";
+  document.body.style.overflow = "";
 }
 
 // ---------------------------------------------------------------------------
