@@ -80,6 +80,12 @@
     </div>
     <div class="cart-footer" id="cartFooter" style="display:none">
       <div class="cart-total">
+        <span>Total:</span>
+        <strong id="cartTotal">Rp 0</strong>
+      </div>
+      <button class="btn-primary btn-checkout" onclick="goToCheckout()">Lanjut ke Pembayaran</button>
+    </div>
+  </aside>
 
   <!-- ========== ORDER HISTORY DRAWER ========== -->
   <aside class="cart-drawer" id="orderHistoryDrawer" aria-label="Riwayat Pesanan">
@@ -89,14 +95,6 @@
     </div>
     <div class="cart-body" id="orderHistoryBody">
       <p class="cart-empty">Belum ada pesanan</p>
-    </div>
-  </aside>
-
-
-        <span>Total:</span>
-        <strong id="cartTotal">Rp 0</strong>
-      </div>
-      <button class="btn-primary btn-checkout" onclick="goToCheckout()">Lanjut ke Pembayaran</button>
     </div>
   </aside>
 
