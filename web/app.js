@@ -128,7 +128,7 @@ async function loadMenu() {
     const catSnap = await getDocs(collection(state.db, "categories"));
     state.categories = catSnap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      .filter(c => c.isActive)
+      .filter(c => c.isActive !== false)
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
     // Load menu items
@@ -137,6 +137,7 @@ async function loadMenu() {
 
     renderCategoryTabs();
     renderMenuGrid("all");
+    loadCartFromStorage();
     showMenuContent();
   } catch (err) {
     console.error("loadMenu error:", err);
@@ -432,12 +433,14 @@ function addToCart(item, quantity, selectedToppings, notes) {
     state.cart.push({ key, menuItem: item, quantity, selectedToppings, notes, subtotal });
   }
 
+  saveCartToStorage();
   updateCartUI();
   showCartToast(item.name);
 }
 
 function removeFromCart(key) {
   state.cart = state.cart.filter(c => c.key !== key);
+  saveCartToStorage();
   updateCartUI();
   renderCartBody();
 }
@@ -452,6 +455,7 @@ function changeCartQty(key, delta) {
     return;
   }
   item.subtotal = ((item.menuItem.price || 0) + toppingsTotal) * item.quantity;
+  saveCartToStorage();
   updateCartUI();
   renderCartBody();
 }
@@ -812,6 +816,7 @@ function showSuccess(orderId, tableNumber, paymentMethod) {
   document.getElementById("checkoutPage").style.display = "none";
   document.getElementById("successPage").style.display = "block";
   state.cart = [];
+  saveCartToStorage();
   updateCartUI();
   // Order history will automatically update via real-time listener
 }
@@ -869,6 +874,39 @@ function showCartToast(itemName) {
   document.head.appendChild(style);
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 2600);
+}
+
+// ---------------------------------------------------------------------------
+// Cart persistence (localStorage)
+// ---------------------------------------------------------------------------
+function cartStorageKey() {
+  return `culinary_cart_${state.tableNumber}_${state.sessionId}`;
+}
+
+function saveCartToStorage() {
+  try {
+    localStorage.setItem(cartStorageKey(), JSON.stringify(state.cart));
+  } catch (e) {
+    console.warn("Failed to save cart to localStorage:", e);
+  }
+}
+
+function loadCartFromStorage() {
+  try {
+    const saved = localStorage.getItem(cartStorageKey());
+    if (!saved) return;
+    const cart = JSON.parse(saved);
+    // Re-hydrate menuItem references from the current menu and drop stale entries
+    state.cart = cart.filter(c => {
+      const menuItem = state.menuItems.find(m => m.id === c.menuItem?.id);
+      if (!menuItem) return false;
+      c.menuItem = menuItem;
+      return true;
+    });
+    updateCartUI();
+  } catch (e) {
+    console.warn("Failed to load cart from localStorage:", e);
+  }
 }
 
 // ---------------------------------------------------------------------------
