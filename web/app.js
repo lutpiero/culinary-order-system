@@ -28,6 +28,7 @@ const FIREBASE_CONFIG = window.FIREBASE_CONFIG || {
 const state = {
   tableNumber: "",
   sessionId:   "",    // Unique session ID for this customer's visit
+  businessName: "",   // Loaded from settings; used for dynamic subtitle
   categories:  [],
   menuItems:   [],
   cart:        [],    // [{ menuItem, quantity, selectedToppings, notes, subtotal }]
@@ -71,7 +72,7 @@ function parseTableFromUrl() {
   }
   
   state.sessionId = sessionId;
-  document.getElementById("tableLabel").textContent = `Meja ${state.tableNumber}`;
+  document.getElementById("tableLabel").textContent = `Pesanan Meja ${state.tableNumber}`;
   document.title = `Menu – Meja ${state.tableNumber}`;
 }
 
@@ -103,11 +104,27 @@ async function loadSettings() {
     const settingsSnap = await getDoc(doc(state.db, "settings", "settings"));
     if (settingsSnap.exists()) {
       const data = settingsSnap.data();
+
       const businessName = data.businessName || "";
       if (businessName) {
+        state.businessName = businessName;
         const titleEl = document.querySelector(".header-title");
         if (titleEl) titleEl.textContent = businessName;
         document.title = `${businessName} – Meja ${state.tableNumber}`;
+      }
+
+      const logoUrl = data.logoUrl || "";
+      if (logoUrl) {
+        const logoEl = document.getElementById("headerLogo");
+        if (logoEl) {
+          logoEl.textContent = "";
+          const img = document.createElement("img");
+          img.src = logoUrl;
+          img.alt = businessName || "Logo";
+          img.style.cssText = "width:36px;height:36px;object-fit:cover;border-radius:50%;";
+          img.onerror = () => { logoEl.textContent = "🍜"; };
+          logoEl.appendChild(img);
+        }
       }
     }
   } catch (err) {
@@ -702,12 +719,14 @@ function goToCheckout() {
   document.getElementById("checkoutSubtotal").textContent = formatRupiah(total);
   document.getElementById("checkoutTotal").textContent = formatRupiah(total);
 
+  document.getElementById("tableLabel").textContent = `Checkout Meja ${state.tableNumber}`;
   document.getElementById("checkoutPage").style.display = "block";
   document.body.style.overflow = "hidden";
 }
 
 function closeCheckout() {
   document.getElementById("checkoutPage").style.display = "none";
+  document.getElementById("tableLabel").textContent = `Pesanan Meja ${state.tableNumber}`;
   document.body.style.overflow = "";
 }
 
@@ -814,6 +833,7 @@ function showSuccess(orderId, tableNumber, paymentMethod) {
   `;
 
   document.getElementById("checkoutPage").style.display = "none";
+  document.getElementById("tableLabel").textContent = `Pesanan Meja ${state.tableNumber}`;
   document.getElementById("successPage").style.display = "block";
   state.cart = [];
   saveCartToStorage();
