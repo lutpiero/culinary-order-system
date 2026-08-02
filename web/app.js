@@ -213,14 +213,14 @@ async function loadOrderHistory() {
           // Exclude cancelled orders
           if (order.status === "CANCELLED") return false;
           
-          // Keep completed orders only if within last 24 hours
-          if (order.status === "COMPLETED") {
+          // Keep completed/served orders only if within last 24 hours
+          if (order.status === "COMPLETED" || order.status === "SERVED") {
             const orderDate = order.updatedAt?.toDate ? order.updatedAt.toDate() : 
                             order.createdAt?.toDate ? order.createdAt.toDate() : new Date(0);
             return orderDate >= oneDayAgo;
           }
           
-          // Keep all other statuses (PENDING, PREPARING, READY)
+          // Keep all other statuses (PENDING, IN_QUEUE, PREPARING, READY)
           return true;
         });
       
@@ -582,9 +582,11 @@ function renderOrderHistory() {
 
   body.innerHTML = state.orders.map(order => {
     const statusLabels = {
-      PENDING: { text: "Menunggu", color: "#FF9800" },
-      PREPARING: { text: "Diproses", color: "#2196F3" },
-      READY: { text: "Siap", color: "#4CAF50" },
+      PENDING: { text: "Menunggu Konfirmasi", color: "#FF9800" },
+      IN_QUEUE: { text: "Dalam Antrian", color: "#FF9800" },
+      PREPARING: { text: "Sedang Disiapkan", color: "#2196F3" },
+      READY: { text: "Siap Diambil", color: "#4CAF50" },
+      SERVED: { text: "Sudah Disajikan", color: "#9E9E9E" },
       COMPLETED: { text: "Selesai", color: "#9E9E9E" },
       CANCELLED: { text: "Dibatalkan", color: "#F44336" }
     };
@@ -630,9 +632,11 @@ function openOrderDetailModal(orderId) {
   const content = document.getElementById("itemModalContent");
 
   const statusLabels = {
-   PENDING: { text: "Menunggu", color: "#FF9800" },
-   PREPARING: { text: "Diproses", color: "#2196F3" },
-   READY: { text: "Siap", color: "#4CAF50" },
+   PENDING: { text: "Menunggu Konfirmasi", color: "#FF9800" },
+   IN_QUEUE: { text: "Dalam Antrian", color: "#FF9800" },
+   PREPARING: { text: "Sedang Disiapkan", color: "#2196F3" },
+   READY: { text: "Siap Diambil", color: "#4CAF50" },
+   SERVED: { text: "Sudah Disajikan", color: "#9E9E9E" },
    COMPLETED: { text: "Selesai", color: "#9E9E9E" },
    CANCELLED: { text: "Dibatalkan", color: "#F44336" }
   };
