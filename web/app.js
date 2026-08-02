@@ -105,7 +105,13 @@ async function loadSettings() {
     if (settingsSnap.exists()) {
       const data = settingsSnap.data();
 
-      const businessName = data.businessName || "";
+      const businessName = (
+        data.businessName ||
+        data.business_name ||
+        data.business ||
+        data.name ||
+        ""
+      ).toString().trim();
       if (businessName) {
         state.businessName = businessName;
         const titleEl = document.querySelector(".header-title");
@@ -113,7 +119,13 @@ async function loadSettings() {
         document.title = `${businessName} – Meja ${state.tableNumber}`;
       }
 
-      const logoUrl = data.logoUrl || "";
+      const logoUrl = (
+        data.logoUrl ||
+        data.logo_url ||
+        data.businessLogoUrl ||
+        data.iconUrl ||
+        ""
+      ).toString().trim();
       if (logoUrl) {
         const logoEl = document.getElementById("headerLogo");
         if (logoEl) {
