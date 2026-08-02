@@ -1,23 +1,30 @@
 package com.culinary.orderapp.data.repository
 
+import android.content.Context
 import android.net.Uri
 import com.culinary.orderapp.domain.repository.StorageRepository
 import com.culinary.orderapp.util.Logger
 import com.google.firebase.storage.FirebaseStorage
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class StorageRepositoryImpl @Inject constructor(
-    private val storage: FirebaseStorage
+    private val storage: FirebaseStorage,
+    @ApplicationContext private val context: Context
 ) : StorageRepository {
 
     override suspend fun uploadImage(uri: Uri, path: String): Result<String> {
         return try {
             Logger.d("Uploading image to $path", TAG)
             val ref = storage.reference.child(path)
-            ref.putFile(uri).await()
+            val inputStream = context.contentResolver.openInputStream(uri)
+                ?: return Result.failure(Exception("Cannot open image file"))
+            inputStream.use { stream ->
+                ref.putStream(stream).await()
+            }
             val downloadUrl = ref.downloadUrl.await().toString()
             Logger.i("Image uploaded successfully: $downloadUrl", TAG)
             Result.success(downloadUrl)
