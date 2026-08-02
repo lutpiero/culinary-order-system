@@ -1,8 +1,10 @@
 package com.culinary.orderapp.ui.screen.settings
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.culinary.orderapp.domain.model.BusinessSettings
+import com.culinary.orderapp.domain.repository.StorageRepository
 import com.culinary.orderapp.domain.usecase.GetCurrentUserUseCase
 import com.culinary.orderapp.domain.usecase.ObserveSettingsUseCase
 import com.culinary.orderapp.domain.usecase.SignOutUseCase
@@ -24,6 +26,8 @@ data class SettingsUiState(
     val currency: String = "Rp",
     val taxPercentage: String = "",
     val serviceChargePercentage: String = "",
+    val logoUrl: String? = null,
+    val isUploadingLogo: Boolean = false,
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
@@ -35,7 +39,8 @@ class SettingsViewModel @Inject constructor(
     private val observeSettings: ObserveSettingsUseCase,
     private val updateSettings: UpdateSettingsUseCase,
     private val getCurrentUser: GetCurrentUserUseCase,
-    private val signOutUseCase: SignOutUseCase
+    private val signOutUseCase: SignOutUseCase,
+    private val storageRepository: StorageRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -57,6 +62,7 @@ class SettingsViewModel @Inject constructor(
                         currency = settings.currency,
                         taxPercentage = if (settings.taxPercentage > 0) settings.taxPercentage.toString() else "",
                         serviceChargePercentage = if (settings.serviceChargePercentage > 0) settings.serviceChargePercentage.toString() else "",
+                        logoUrl = settings.logoUrl,
                         isLoading = false
                     )
                 } else {
@@ -74,6 +80,24 @@ class SettingsViewModel @Inject constructor(
     fun updateTaxPercentage(value: String) { _uiState.value = _uiState.value.copy(taxPercentage = value) }
     fun updateServiceChargePercentage(value: String) { _uiState.value = _uiState.value.copy(serviceChargePercentage = value) }
     fun clearMessage() { _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null) }
+
+    fun uploadBusinessIcon(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isUploadingLogo = true, errorMessage = null)
+            val result = storageRepository.uploadImage(uri, "business_icons/logo.jpg")
+            result.fold(
+                onSuccess = { url ->
+                    _uiState.value = _uiState.value.copy(logoUrl = url, isUploadingLogo = false)
+                },
+                onFailure = { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isUploadingLogo = false,
+                        errorMessage = e.message ?: "Gagal mengunggah ikon bisnis"
+                    )
+                }
+            )
+        }
+    }
 
     fun signOut() {
         viewModelScope.launch {
@@ -99,7 +123,7 @@ class SettingsViewModel @Inject constructor(
                     currency = _uiState.value.currency,
                     taxPercentage = tax,
                     serviceChargePercentage = serviceCharge,
-                    logoUrl = null,
+                    logoUrl = _uiState.value.logoUrl,
                     updatedAt = Date(),
                     updatedBy = currentUser?.id ?: ""
                 )

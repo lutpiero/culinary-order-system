@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.culinary.orderapp.domain.model.MenuItem
+import com.culinary.orderapp.ui.component.BusinessLogoIcon
 import com.culinary.orderapp.util.toRupiahFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,6 +74,16 @@ fun MenuManagementScreen(
                             )
                         }
                         Text("Manajemen Menu", fontWeight = FontWeight.Bold)
+                    }
+                },
+                navigationIcon = {
+                    Box(
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        BusinessLogoIcon(
+                            logoUrl = uiState.logoUrl,
+                            size = 36.dp
+                        )
                     }
                 },
                 actions = {
