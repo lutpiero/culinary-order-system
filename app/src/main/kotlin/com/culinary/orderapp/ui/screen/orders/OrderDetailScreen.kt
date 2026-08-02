@@ -112,8 +112,12 @@ fun OrderDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
+                            val tableLabel = when (order.status) {
+                                OrderStatus.SERVED -> "Checkout Meja ${order.tableNumber}"
+                                else -> "Pesanan Meja ${order.tableNumber}"
+                            }
                             Text(
-                                text = "Meja ${order.tableNumber}",
+                                text = tableLabel,
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold
                             )

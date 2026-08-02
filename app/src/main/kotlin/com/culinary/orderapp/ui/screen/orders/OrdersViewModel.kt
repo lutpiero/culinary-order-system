@@ -22,7 +22,8 @@ data class OrdersUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val selectedTab: Int = 0,
-    val businessName: String = ""
+    val businessName: String = "",
+    val logoUrl: String? = null
 )
 
 data class OrderDetailUiState(
@@ -52,7 +53,10 @@ class OrdersViewModel @Inject constructor(
         viewModelScope.launch {
             observeSettings().collect { settings ->
                 if (settings != null) {
-                    _uiState.value = _uiState.value.copy(businessName = settings.businessName)
+                    _uiState.value = _uiState.value.copy(
+                        businessName = settings.businessName,
+                        logoUrl = settings.logoUrl
+                    )
                 }
             }
         }

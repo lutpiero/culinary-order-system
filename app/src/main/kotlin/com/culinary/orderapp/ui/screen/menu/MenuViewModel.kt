@@ -1,10 +1,12 @@
 package com.culinary.orderapp.ui.screen.menu
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.culinary.orderapp.domain.model.Category
 import com.culinary.orderapp.domain.model.MenuItem
 import com.culinary.orderapp.domain.model.ToppingGroup
+import com.culinary.orderapp.domain.repository.StorageRepository
 import com.culinary.orderapp.domain.usecase.DeleteMenuItemUseCase
 import com.culinary.orderapp.domain.usecase.ObserveCategoriesUseCase
 import com.culinary.orderapp.domain.usecase.ObserveMenuItemsUseCase
@@ -27,13 +29,15 @@ data class MenuUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
-    val businessName: String = ""
+    val businessName: String = "",
+    val logoUrl: String? = null
 )
 
 data class MenuItemFormState(
     val item: MenuItem = MenuItem(),
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
+    val isUploadingImage: Boolean = false,
     val errorMessage: String? = null
 )
 
@@ -45,7 +49,8 @@ class MenuViewModel @Inject constructor(
     private val deleteMenuItem: DeleteMenuItemUseCase,
     private val toggleAvailability: ToggleMenuItemAvailabilityUseCase,
     private val saveCategory: SaveCategoryUseCase,
-    private val observeSettings: ObserveSettingsUseCase
+    private val observeSettings: ObserveSettingsUseCase,
+    private val storageRepository: StorageRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MenuUiState(isLoading = true))
@@ -60,7 +65,10 @@ class MenuViewModel @Inject constructor(
         viewModelScope.launch {
             observeSettings().collect { settings ->
                 if (settings != null) {
-                    _uiState.value = _uiState.value.copy(businessName = settings.businessName)
+                    _uiState.value = _uiState.value.copy(
+                        businessName = settings.businessName,
+                        logoUrl = settings.logoUrl
+                    )
                 }
             }
         }
@@ -130,6 +138,28 @@ class MenuViewModel @Inject constructor(
             _formState.value = _formState.value.copy(
                 isSaving = false,
                 errorMessage = result.exceptionOrNull()?.message
+            )
+        }
+    }
+
+    fun uploadMenuImage(uri: Uri) {
+        viewModelScope.launch {
+            _formState.value = _formState.value.copy(isUploadingImage = true, errorMessage = null)
+            val itemId = _formState.value.item.id.ifBlank { "temp_${System.currentTimeMillis()}" }
+            val result = storageRepository.uploadImage(uri, "menu_images/$itemId.jpg")
+            result.fold(
+                onSuccess = { url ->
+                    _formState.value = _formState.value.copy(
+                        item = _formState.value.item.copy(imageUrl = url),
+                        isUploadingImage = false
+                    )
+                },
+                onFailure = { e ->
+                    _formState.value = _formState.value.copy(
+                        isUploadingImage = false,
+                        errorMessage = e.message ?: "Gagal mengunggah gambar"
+                    )
+                }
             )
         }
     }

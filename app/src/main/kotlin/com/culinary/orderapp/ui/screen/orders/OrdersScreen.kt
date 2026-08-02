@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.culinary.orderapp.domain.model.Order
 import com.culinary.orderapp.domain.model.OrderStatus
+import com.culinary.orderapp.ui.component.BusinessLogoIcon
 import com.culinary.orderapp.ui.component.StatusBadge
 import com.culinary.orderapp.util.toRupiahFormat
 import java.text.SimpleDateFormat
@@ -59,14 +60,16 @@ fun OrdersScreen(
         TopAppBar(
             title = {
                 Column {
-                    if (uiState.businessName.isNotBlank()) {
-                        Text(
-                            text = uiState.businessName,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-                    Text("Manajemen Pesanan", fontWeight = FontWeight.Bold)
+                    Text(
+                        text = uiState.businessName.ifBlank { "Pesanan" },
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            navigationIcon = {
+                Box(modifier = Modifier.padding(start = 8.dp)) {
+                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 36.dp)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -156,7 +159,7 @@ fun OrderCard(order: Order, onClick: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Meja ${order.tableNumber}",
+                        text = "Pesanan Meja ${order.tableNumber}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )

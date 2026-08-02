@@ -1,7 +1,12 @@
 package com.culinary.orderapp.ui.screen.settings
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.culinary.orderapp.domain.model.Permission
 import com.culinary.orderapp.domain.state.CurrentUserState
+import com.culinary.orderapp.ui.component.BusinessLogoIcon
 import com.culinary.orderapp.ui.component.RequirePermission
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +41,12 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.uploadBusinessIcon(it) }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -48,6 +60,11 @@ fun SettingsScreen(
                         )
                     }
                     Text("Pengaturan", fontWeight = FontWeight.Bold)
+                }
+            },
+            navigationIcon = {
+                Box(modifier = Modifier.padding(start = 8.dp)) {
+                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 36.dp)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -74,6 +91,45 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
+
+                    // Business icon upload
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        BusinessLogoIcon(
+                            logoUrl = uiState.logoUrl,
+                            size = 64.dp,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.border(
+                                width = 2.dp,
+                                color = MaterialTheme.colorScheme.outline,
+                                shape = CircleShape
+                            )
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                "Ikon Bisnis",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                "Ditampilkan di pojok kiri atas aplikasi",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (uiState.isUploadingLogo) {
+                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            } else {
+                                OutlinedButton(
+                                    onClick = { imagePickerLauncher.launch("image/*") },
+                                    enabled = !uiState.isSaving
+                                ) {
+                                    Text("Pilih Gambar")
+                                }
+                            }
+                        }
+                    }
 
                     OutlinedTextField(
                         value = uiState.businessName,
@@ -179,7 +235,7 @@ fun SettingsScreen(
             Button(
                 onClick = viewModel::save,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = !uiState.isSaving
+                enabled = !uiState.isSaving && !uiState.isUploadingLogo
             ) {
                 if (uiState.isSaving) {
                     CircularProgressIndicator(
