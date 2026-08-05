@@ -36,7 +36,9 @@ const state = {
   activeCategory: "all",
   isLoading:   true,
   db:          null,
-  ordersListener: null
+  ordersListener: null,
+  qrisPollingTimer: null,  // Timer for payment status polling
+  currentPaymentOrderId: null  // Store current order ID for payment tracking
 };
 
 // ---------------------------------------------------------------------------
@@ -851,6 +853,15 @@ function showSuccess(orderId, tableNumber, paymentMethod) {
   document.getElementById("checkoutPage").style.display = "none";
   document.getElementById("tableLabel").textContent = `Pesanan Meja ${state.tableNumber}`;
   document.getElementById("successPage").style.display = "block";
+  
+  // Handle QRIS payment display and polling
+  if (paymentMethod === "QRIS") {
+    handleQrisPayment(orderId);
+  } else {
+    // Hide QRIS section for non-QRIS payments
+    document.getElementById("qrisPaymentSection").style.display = "none";
+  }
+  
   state.cart = [];
   saveCartToStorage();
   updateCartUI();
@@ -964,4 +975,144 @@ function escHtml(str) {
 
 function generateId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+// ---------------------------------------------------------------------------
+// QRIS Payment Handling
+// ---------------------------------------------------------------------------
+/**
+ * Handle QRIS payment after order placement
+ * Generates QRIS QR code and starts polling for payment status
+ */
+function handleQrisPayment(orderId) {
+  // Display QRIS payment section
+  document.getElementById("qrisPaymentSection").style.display = "block";
+  document.getElementById("successMessage").textContent = "Pesanan Anda telah diterima. Silakan lakukan pembayaran melalui QRIS.";
+  
+  // Store current order ID for polling
+  state.currentPaymentOrderId = orderId;
+  
+  // Get the total amount from the checkout
+  const totalAmount = state.cart.reduce((s, c) => s + c.subtotal, 0);
+  
+  try {
+    // Generate QRIS payment data
+    const qrisPayment = generateQrisPayment(
+      totalAmount,
+      orderId.slice(-25)  // Use last 25 chars of order ID as reference
+    );
+    
+    if (qrisPayment) {
+      // Display QR code
+      const qrWrapper = document.getElementById("qrisQrWrapper");
+      const qrCode = document.getElementById("qrisQrCode");
+      qrCode.src = qrisPayment.qrCodeImage;
+      qrWrapper.style.display = "flex";
+      
+      // Start polling for payment status
+      startPaymentPolling(orderId);
+    } else {
+      showQrisError("Gagal membuat QR code QRIS. Silakan coba lagi atau gunakan metode pembayaran lain.");
+    }
+  } catch (error) {
+    console.error("Error handling QRIS payment:", error);
+    showQrisError("Terjadi kesalahan saat memproses pembayaran QRIS. " + error.message);
+  }
+}
+
+/**
+ * Start polling for payment status
+ * Checks Firestore periodically to see if payment has been confirmed
+ */
+function startPaymentPolling(orderId) {
+  const pollingInterval = 3000; // Poll every 3 seconds
+  const maxPollingTime = 600000; // Stop polling after 10 minutes
+  let pollingStartTime = Date.now();
+  
+  document.getElementById("qrisPollingStatus").style.display = "flex";
+  
+  // Clear any existing polling timer
+  if (state.qrisPollingTimer) {
+    clearInterval(state.qrisPollingTimer);
+  }
+  
+  state.qrisPollingTimer = setInterval(async () => {
+    const elapsedTime = Date.now() - pollingStartTime;
+    
+    // Stop polling after max time
+    if (elapsedTime > maxPollingTime) {
+      clearInterval(state.qrisPollingTimer);
+      state.qrisPollingTimer = null;
+      showQrisError("Waktu tunggu pembayaran telah habis. Silakan hubungi penjual.");
+      return;
+    }
+    
+    try {
+      // Check order status from Firestore
+      const { doc, getDoc } = state._firestore;
+      const orderRef = doc(state.db, "orders", orderId);
+      const orderSnap = await getDoc(orderRef);
+      
+      if (orderSnap.exists()) {
+        const orderData = orderSnap.data();
+        
+        // Check if payment has been confirmed
+        if (orderData.paymentStatus === "PAID") {
+          clearInterval(state.qrisPollingTimer);
+          state.qrisPollingTimer = null;
+          handlePaymentConfirmed(orderId);
+        } else if (orderData.paymentStatus === "FAILED" || orderData.paymentStatus === "CANCELLED") {
+          clearInterval(state.qrisPollingTimer);
+          state.qrisPollingTimer = null;
+          showQrisError("Pembayaran ditolak atau dibatalkan. Silakan coba lagi.");
+        }
+      }
+    } catch (error) {
+      console.error("Error polling payment status:", error);
+      // Continue polling despite errors
+    }
+  }, pollingInterval);
+}
+
+/**
+ * Handle confirmed payment
+ */
+function handlePaymentConfirmed(orderId) {
+  const qrWrapper = document.getElementById("qrisQrWrapper");
+  const pollingStatus = document.getElementById("qrisPollingStatus");
+  const qrisStatus = document.getElementById("qrisStatus");
+  
+  // Hide polling indicator
+  pollingStatus.style.display = "none";
+  qrWrapper.style.display = "none";
+  
+  // Show success message
+  qrisStatus.innerHTML = `
+    <div style="background: #E8F5E9; border-left: 4px solid var(--success); padding: 12px; border-radius: var(--radius-sm); margin: 0;">
+      <p style="color: var(--success); font-weight: 500; margin: 0; font-size: 14px;">✓ Pembayaran Berhasil!</p>
+      <p style="color: #558B2F; font-size: 13px; margin: 4px 0 0 0;">Pesanan Anda sedang diproses oleh penjual.</p>
+    </div>
+  `;
+  
+  // Update success message
+  document.getElementById("successMessage").textContent = "Pembayaran berhasil diterima! Pesanan Anda sedang diproses.";
+}
+
+/**
+ * Show QRIS error message
+ */
+function showQrisError(message) {
+  const qrisStatus = document.getElementById("qrisStatus");
+  const pollingStatus = document.getElementById("qrisPollingStatus");
+  const qrWrapper = document.getElementById("qrisQrWrapper");
+  
+  pollingStatus.style.display = "none";
+  qrWrapper.style.display = "none";
+  
+  qrisStatus.innerHTML = `
+    <div style="background: #FFEBEE; border-left: 4px solid var(--error); padding: 12px; border-radius: var(--radius-sm); margin: 0;">
+      <p style="color: var(--error); font-weight: 500; margin: 0; font-size: 14px;">⚠ Pembayaran Gagal</p>
+      <p style="color: #C62828; font-size: 13px; margin: 4px 0 0 0;">${escHtml(message)}</p>
+    </div>
+  `;
 }

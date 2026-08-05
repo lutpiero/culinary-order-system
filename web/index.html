@@ -175,12 +175,33 @@
     <div class="success-content">
       <div class="success-icon">✅</div>
       <h2>Pesanan Berhasil!</h2>
-      <p class="success-message">Pesanan Anda telah diterima. Penjual akan segera memprosesnya.</p>
+      <p class="success-message" id="successMessage">Pesanan Anda telah diterima. Penjual akan segera memprosesnya.</p>
       <div class="order-info" id="successOrderInfo"></div>
+      
+      <!-- QRIS Payment Section -->
+      <div id="qrisPaymentSection" style="display:none">
+        <div class="qris-container">
+          <h3>Pembayaran via QRIS</h3>
+          <div class="qris-status" id="qrisStatus">
+            <p class="payment-pending">Menunggu pembayaran...</p>
+          </div>
+          <div class="qris-qr-wrapper" id="qrisQrWrapper" style="display:none">
+            <img id="qrisQrCode" class="qris-qr-code" alt="QR Code QRIS" />
+            <p class="qris-instruction">Scan dengan aplikasi e-wallet Anda untuk menyelesaikan pembayaran</p>
+          </div>
+          <div id="qrisPollingStatus" style="display:none;text-align:center;padding:16px">
+            <div class="spinner-small"></div>
+            <p style="margin-top:8px;color:#666;font-size:14px">Memeriksa status pembayaran...</p>
+          </div>
+        </div>
+      </div>
+      
       <button class="btn-primary" onclick="resetApp()">Pesan Lagi</button>
     </div>
   </div>
   <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js" integrity="sha512-bPYqfV8V3hn6Xrr8h9uECVhKjVdS7E/TDlW6v4MqQGBH/FwEKlJ8pHYNj4FI/ykhlJ5gS5xW2WmVHbR4bPYg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="qris-util.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
