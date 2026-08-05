@@ -4,6 +4,7 @@ import com.culinary.orderapp.domain.model.Order
 import com.culinary.orderapp.domain.model.OrderItem
 import com.culinary.orderapp.domain.model.OrderStatus
 import com.culinary.orderapp.domain.model.PaymentMethod
+import com.culinary.orderapp.domain.model.PaymentStatus
 import com.culinary.orderapp.domain.model.SelectedTopping
 import com.google.firebase.Timestamp
 import java.util.Date
@@ -71,6 +72,7 @@ data class OrderItemDto(
 
 /**
  * Firestore DTO for an Order document.
+ * Supports payment tracking for QRIS and other online payment methods.
  */
 data class OrderDto(
     val id: String = "",
@@ -80,6 +82,8 @@ data class OrderDto(
     val items: List<OrderItemDto> = emptyList(),
     val status: String = OrderStatus.PENDING.name,
     val paymentMethod: String = PaymentMethod.CASHIER.name,
+    val paymentStatus: String = PaymentStatus.PENDING.name,  // For tracking QRIS/online payments
+    val paymentRefNo: String = "",  // Reference number for QRIS payment
     val notes: String = "",
     val createdAt: Timestamp = Timestamp.now(),
     val updatedAt: Timestamp = Timestamp.now(),
@@ -94,6 +98,8 @@ data class OrderDto(
         items = items.map { it.toDomain() },
         status = runCatching { OrderStatus.valueOf(status) }.getOrDefault(OrderStatus.PENDING),
         paymentMethod = runCatching { PaymentMethod.valueOf(paymentMethod) }.getOrDefault(PaymentMethod.CASHIER),
+        paymentStatus = runCatching { PaymentStatus.valueOf(paymentStatus) }.getOrDefault(PaymentStatus.PENDING),
+        paymentRefNo = paymentRefNo,
         notes = notes,
         createdAt = createdAt.toDate(),
         updatedAt = updatedAt.toDate(),
@@ -110,6 +116,8 @@ data class OrderDto(
             items = order.items.map { OrderItemDto.fromDomain(it) },
             status = order.status.name,
             paymentMethod = order.paymentMethod.name,
+            paymentStatus = order.paymentStatus.name,
+            paymentRefNo = order.paymentRefNo,
             notes = order.notes,
             createdAt = Timestamp(order.createdAt),
             updatedAt = Timestamp(Date()),
