@@ -56,6 +56,13 @@ function generateQrisWithRefno(amount, partnerRefno) {
   }
   // -------------------------
 
+  // Get QRIS configuration (from config.js)
+  const qrisConfig = window.QRIS_CONFIG || {
+    prefix: "00020101021226710019ID.CO.DSPRATAMA.WWW011893600998000001350302159980260752866590303UMI51440014ID.CO.QRIS.WWW0215ID10265469836970303UMI520486615303360",
+    middle: "5802ID5918MASJID NURUL ISLAM6015JAKARTA SELATAN610512720",
+    suffix: "6304"
+  };
+
   // 1. Format the Amount TLV (Tag 54)
   const amountStr = String(amount);
   const amountTlv = `54${String(amountStr.length).padStart(2, '0')}${amountStr}`;
@@ -72,10 +79,9 @@ function generateQrisWithRefno(amount, partnerRefno) {
   const tag62Tlv = `62${String(combinedSubTags.length).padStart(2, '0')}${combinedSubTags}`;
   
   // 3. Split the base QRIS payload to inject the new dynamic blocks
-  // This is a template QRIS string from a test acquirer
-  const prefix = "00020101021226710019ID.CO.DSPRATAMA.WWW011893600998000001350302159980260752866590303UMI51440014ID.CO.QRIS.WWW0215ID10265469836970303UMI520486615303360";
-  const middle = "5802ID5918MASJID NURUL ISLAM6015JAKARTA SELATAN610512720";
-  const suffix = "6304";
+  const prefix = qrisConfig.prefix;
+  const middle = qrisConfig.middle;
+  const suffix = qrisConfig.suffix;
   
   // 4. Construct the new payload and append the recalculated checksum
   const baseQris = prefix + amountTlv + middle + tag62Tlv + suffix;
@@ -92,11 +98,9 @@ function generateQrisWithRefno(amount, partnerRefno) {
  * @returns {string} - Data URL of the QR code image
  */
 function generateQrCodeImage(qrisString) {
-  // Create a temporary canvas for QR code generation
-  const canvas = document.createElement('canvas');
-  
-  // Use QRious if available, otherwise try other methods
+  // Use QRious library (must be loaded from CDN)
   if (typeof QRious !== 'undefined') {
+    const canvas = document.createElement('canvas');
     const qr = new QRious({
       element: canvas,
       value: qrisString,
@@ -105,19 +109,8 @@ function generateQrCodeImage(qrisString) {
       mime: 'image/png'
     });
     return canvas.toDataURL('image/png');
-  } else if (typeof QRCode !== 'undefined') {
-    // Fallback to qrcode.js library
-    const qr = new QRCode({
-      text: qrisString,
-      width: 300,
-      height: 300,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.M
-    });
-    return qr.toDataURL('image/png');
   } else {
-    throw new Error('QR code library not loaded. Please include QRious or QRCode library.');
+    throw new Error('QRious library not loaded. Please ensure CDN script is included in HTML.');
   }
 }
 

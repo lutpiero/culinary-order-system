@@ -1057,10 +1057,14 @@ function startPaymentPolling(orderId) {
         const orderData = orderSnap.data();
         
         // Check if payment has been confirmed
-        if (orderData.paymentStatus === "PAID" || orderData.status !== "PENDING") {
+        if (orderData.paymentStatus === "PAID") {
           clearInterval(state.qrisPollingTimer);
           state.qrisPollingTimer = null;
           handlePaymentConfirmed(orderId);
+        } else if (orderData.paymentStatus === "FAILED" || orderData.paymentStatus === "CANCELLED") {
+          clearInterval(state.qrisPollingTimer);
+          state.qrisPollingTimer = null;
+          showQrisError("Pembayaran ditolak atau dibatalkan. Silakan coba lagi.");
         }
       }
     } catch (error) {
@@ -1112,26 +1116,3 @@ function showQrisError(message) {
     </div>
   `;
 }
-
-/**
- * Store QRIS transaction data in Firestore
- * (Optional: for backend tracking)
- */
-async function storeQrisTransaction(orderId, qrisString, amount) {
-  try {
-    const { collection, addDoc, serverTimestamp } = state._firestore;
-    
-    await addDoc(collection(state.db, "qrisTransactions"), {
-      orderId: orderId,
-      qrisString: qrisString,
-      amount: amount,
-      status: "PENDING",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-  } catch (error) {
-    console.warn("Error storing QRIS transaction:", error);
-    // Continue even if storage fails
-  }
-}
-

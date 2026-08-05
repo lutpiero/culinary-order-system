@@ -16,3 +16,34 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "${FIREBASE_MESSAGING_SENDER_ID}",
   appId: "${FIREBASE_APP_ID}"
 };
+
+/**
+ * QRIS Configuration
+ * 
+ * Merchant-specific QRIS data for payment processing.
+ * These values should be provided by your acquiring bank.
+ */
+window.QRIS_CONFIG = {
+  // QRIS prefix and merchant data from your acquiring bank
+  // This template comes from a test acquirer and should be replaced
+  // with your actual merchant information from your bank
+  prefix: "00020101021226710019ID.CO.DSPRATAMA.WWW011893600998000001350302159980260752866590303UMI51440014ID.CO.QRIS.WWW0215ID10265469836970303UMI520486615303360",
+  middle: "5802ID5918MASJID NURUL ISLAM6015JAKARTA SELATAN610512720",
+  suffix: "6304",
+  
+  // Merchant details (customize these for your business)
+  merchantName: "MASJID NURUL ISLAM",
+  merchantCity: "JAKARTA SELATAN",
+  merchantPostalCode: "12720",
+  
+  // Polling configuration
+  pollingInterval: 3000,     // Poll every 3 seconds
+  maxPollingTime: 600000     // Stop polling after 10 minutes
+};
+
+/**
+ * Application Settings
+ */
+window.APP_CONFIG = {
+  // Add other app-level configuration here as needed
+};
