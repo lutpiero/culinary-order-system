@@ -757,13 +757,23 @@ function closeCheckout() {
 
 async function placeOrder() {
   const btn = document.getElementById("placeOrderBtn");
+
+  // Nama Pelanggan is mandatory before checkout can proceed.
+  const customerName = document.getElementById("customerName").value.trim();
+  if (!customerName) {
+    btn.disabled = false;
+    btn.textContent = "Pesan Sekarang";
+    document.getElementById("customerName").focus();
+    alert("Nama Pelanggan wajib diisi sebelum checkout.");
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = "Memproses...";
 
   let reservedLock = null; // { amount, orderId } — released on failure
 
   try {
-    const customerName = document.getElementById("customerName").value.trim();
     const notes = document.getElementById("orderNotes").value.trim();
     const paymentMethod = document.querySelector("input[name='payment']:checked")?.value || "CASHIER";
 
