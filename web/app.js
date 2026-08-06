@@ -727,6 +727,12 @@ function goToCheckout() {
   if (state.cart.length === 0) return;
   closeCart();
 
+  // Reset the submit button in case a previous order left it disabled
+  // with "Memproses..." (placeOrder only restores it on failure).
+  const placeOrderBtn = document.getElementById("placeOrderBtn");
+  placeOrderBtn.disabled = false;
+  placeOrderBtn.textContent = "Pesan Sekarang";
+
   const items = state.cart.map(c => `
     <div class="checkout-item">
       <div class="checkout-item-name">${c.quantity}× ${escHtml(c.menuItem.name)}</div>
