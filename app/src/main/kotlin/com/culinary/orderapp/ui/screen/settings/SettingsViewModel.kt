@@ -27,6 +27,9 @@ data class SettingsUiState(
     val taxPercentage: String = "",
     val serviceChargePercentage: String = "",
     val logoUrl: String? = null,
+    val qrisEnabled: Boolean = true,
+    val bankTransferEnabled: Boolean = true,
+    val cashierEnabled: Boolean = true,
     val isUploadingLogo: Boolean = false,
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
@@ -63,6 +66,9 @@ class SettingsViewModel @Inject constructor(
                         taxPercentage = if (settings.taxPercentage > 0) settings.taxPercentage.toString() else "",
                         serviceChargePercentage = if (settings.serviceChargePercentage > 0) settings.serviceChargePercentage.toString() else "",
                         logoUrl = settings.logoUrl,
+                        qrisEnabled = settings.paymentMethods["QRIS"] ?: true,
+                        bankTransferEnabled = settings.paymentMethods["BANK_TRANSFER"] ?: true,
+                        cashierEnabled = settings.paymentMethods["CASHIER"] ?: true,
                         isLoading = false
                     )
                 } else {
@@ -79,6 +85,9 @@ class SettingsViewModel @Inject constructor(
     fun updateCurrency(value: String) { _uiState.value = _uiState.value.copy(currency = value) }
     fun updateTaxPercentage(value: String) { _uiState.value = _uiState.value.copy(taxPercentage = value) }
     fun updateServiceChargePercentage(value: String) { _uiState.value = _uiState.value.copy(serviceChargePercentage = value) }
+    fun updateQrisEnabled(value: Boolean) { _uiState.value = _uiState.value.copy(qrisEnabled = value) }
+    fun updateBankTransferEnabled(value: Boolean) { _uiState.value = _uiState.value.copy(bankTransferEnabled = value) }
+    fun updateCashierEnabled(value: Boolean) { _uiState.value = _uiState.value.copy(cashierEnabled = value) }
     fun clearMessage() { _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null) }
 
     fun uploadBusinessIcon(uri: Uri) {
@@ -124,6 +133,11 @@ class SettingsViewModel @Inject constructor(
                     taxPercentage = tax,
                     serviceChargePercentage = serviceCharge,
                     logoUrl = _uiState.value.logoUrl,
+                    paymentMethods = mapOf(
+                        "QRIS" to _uiState.value.qrisEnabled,
+                        "BANK_TRANSFER" to _uiState.value.bankTransferEnabled,
+                        "CASHIER" to _uiState.value.cashierEnabled
+                    ),
                     updatedAt = Date(),
                     updatedBy = currentUser?.id ?: ""
                 )

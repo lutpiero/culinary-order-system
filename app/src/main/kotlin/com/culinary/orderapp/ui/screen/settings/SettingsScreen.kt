@@ -216,6 +216,45 @@ fun SettingsScreen(
                 }
             }
 
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        "Metode Pembayaran",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "Metode yang diaktifkan akan tampil di aplikasi pelanggan saat checkout.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    PaymentMethodToggle(
+                        title = "QRIS",
+                        description = "Pembayaran scan QRIS",
+                        checked = uiState.qrisEnabled,
+                        enabled = !uiState.isSaving,
+                        onCheckedChange = viewModel::updateQrisEnabled
+                    )
+                    PaymentMethodToggle(
+                        title = "Transfer Bank",
+                        description = "Transfer manual ke rekening",
+                        checked = uiState.bankTransferEnabled,
+                        enabled = !uiState.isSaving,
+                        onCheckedChange = viewModel::updateBankTransferEnabled
+                    )
+                    PaymentMethodToggle(
+                        title = "Bayar di Kasir",
+                        description = "Pembayaran tunai di kasir",
+                        checked = uiState.cashierEnabled,
+                        enabled = !uiState.isSaving,
+                        onCheckedChange = viewModel::updateCashierEnabled
+                    )
+                }
+            }
+
             if (uiState.errorMessage != null) {
                 Text(
                     uiState.errorMessage ?: "",
@@ -287,6 +326,37 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+private fun PaymentMethodToggle(
+    title: String,
+    description: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled
+        )
     }
 }
 

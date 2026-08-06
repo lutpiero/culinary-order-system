@@ -39,7 +39,8 @@ const state = {
   ordersListener: null,
   qrisPollingTimer: null,  // Timer for payment status polling
   qrisCountdownTimer: null,  // Timer for the 5-minute amount-lock countdown
-  currentPaymentOrderId: null  // Store current order ID for payment tracking
+  currentPaymentOrderId: null,  // Store current order ID for payment tracking
+  paymentMethodsEnabled: { QRIS: true, BANK_TRANSFER: true, CASHIER: true }  // Loaded from settings
 };
 
 // ---------------------------------------------------------------------------
@@ -140,6 +141,18 @@ async function loadSettings() {
           img.onerror = () => { logoEl.textContent = "🍜"; };
           logoEl.appendChild(img);
         }
+      }
+
+      // Which payment methods are enabled for customers (set by the seller
+      // app in the settings document). Defaults to all enabled.
+      const pm = data.paymentMethods || data.payment_methods || {};
+      const anyEnabled = pm.QRIS !== false || pm.BANK_TRANSFER !== false || pm.CASHIER !== false;
+      if (anyEnabled) {
+        state.paymentMethodsEnabled = {
+          QRIS:          pm.QRIS !== false,
+          BANK_TRANSFER: pm.BANK_TRANSFER !== false,
+          CASHIER:       pm.CASHIER !== false
+        };
       }
     }
   } catch (err) {
@@ -732,6 +745,28 @@ function goToCheckout() {
   const placeOrderBtn = document.getElementById("placeOrderBtn");
   placeOrderBtn.disabled = false;
   placeOrderBtn.textContent = "Pesan Sekarang";
+
+  // Show only the payment methods enabled in settings. If the currently
+  // selected method has been disabled, fall back to the first enabled one.
+  const paymentMethods = [
+    { value: "QRIS",          labelId: "paymentOptionQRIS" },
+    { value: "BANK_TRANSFER", labelId: "paymentOptionBANK_TRANSFER" },
+    { value: "CASHIER",       labelId: "paymentOptionCASHIER" }
+  ];
+  for (const method of paymentMethods) {
+    const optionEl = document.getElementById(method.labelId);
+    if (optionEl) {
+      optionEl.style.display = state.paymentMethodsEnabled[method.value] ? "" : "none";
+    }
+  }
+  const checkedMethod = document.querySelector("input[name='payment']:checked");
+  if (checkedMethod && !state.paymentMethodsEnabled[checkedMethod.value]) {
+    const firstEnabled = paymentMethods.find(m => state.paymentMethodsEnabled[m.value]);
+    if (firstEnabled) {
+      const fallbackRadio = document.querySelector(`input[name='payment'][value='${firstEnabled.value}']`);
+      if (fallbackRadio) fallbackRadio.checked = true;
+    }
+  }
 
   const items = state.cart.map(c => `
     <div class="checkout-item">

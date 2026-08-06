@@ -117,6 +117,13 @@ data class BusinessSettings(
     val taxPercentage: Double = 0.0,
     val serviceChargePercentage: Double = 0.0,
     val logoUrl: String? = null,
+    // Which payment methods are shown to customers on the web app. Keys are
+    // the order's paymentMethod values (QRIS, BANK_TRANSFER, CASHIER).
+    val paymentMethods: Map<String, Boolean> = mapOf(
+        "QRIS" to true,
+        "BANK_TRANSFER" to true,
+        "CASHIER" to true
+    ),
     val updatedAt: Date = Date(),
     val updatedBy: String = ""
 )

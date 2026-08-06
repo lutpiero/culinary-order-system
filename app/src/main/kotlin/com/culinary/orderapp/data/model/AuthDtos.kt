@@ -102,6 +102,11 @@ data class BusinessSettingsDto(
     val taxPercentage: Double = 0.0,
     val serviceChargePercentage: Double = 0.0,
     val logoUrl: String? = null,
+    val paymentMethods: Map<String, Boolean> = mapOf(
+        "QRIS" to true,
+        "BANK_TRANSFER" to true,
+        "CASHIER" to true
+    ),
     val updatedAt: Timestamp = Timestamp.now(),
     val updatedBy: String = ""
 ) {
@@ -115,6 +120,7 @@ data class BusinessSettingsDto(
         taxPercentage = taxPercentage,
         serviceChargePercentage = serviceChargePercentage,
         logoUrl = logoUrl,
+        paymentMethods = paymentMethods,
         updatedAt = updatedAt.toDate(),
         updatedBy = updatedBy
     )
@@ -130,6 +136,7 @@ data class BusinessSettingsDto(
             taxPercentage = settings.taxPercentage,
             serviceChargePercentage = settings.serviceChargePercentage,
             logoUrl = settings.logoUrl,
+            paymentMethods = settings.paymentMethods,
             updatedAt = Timestamp(settings.updatedAt),
             updatedBy = settings.updatedBy
         )
