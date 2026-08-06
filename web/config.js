@@ -38,7 +38,21 @@ window.QRIS_CONFIG = {
   
   // Polling configuration
   pollingInterval: 3000,     // Poll every 3 seconds
-  maxPollingTime: 600000     // Stop polling after 10 minutes
+  maxPollingTime: 600000,    // Stop polling after 10 minutes
+
+  // Amount-locking configuration (see QRIS_IMPLEMENTATION_GUIDE.md)
+  // Each QRIS order reserves its exact amount for `lockDurationMs`. If the
+  // same base amount is requested again while still locked, `feeAmount` is
+  // added repeatedly until a free amount is found, so every concurrently
+  // pending QRIS order has a unique, unambiguous amount.
+  feeAmount: 1,              // Rupiah added per collision (qris_fee)
+  lockDurationMs: 300000,    // 5 minutes
+  maxReservationAttempts: 50,
+
+  // On-demand backend endpoint that nudges a faster DSP transaction check
+  // (in addition to the once-per-minute scheduled function) while a QRIS
+  // payment is actively being polled.
+  checkPaymentEndpoint: "/.netlify/functions/check-payment-now"
 };
 
 /**

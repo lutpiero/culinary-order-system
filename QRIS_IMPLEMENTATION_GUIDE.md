@@ -201,28 +201,38 @@ For additional tracking and audit trail:
 }
 ```
 
-## Backend Integration Points
+## Backend Integration Points (Implemented)
 
-### Payment Notification Webhook
+Since the DSP Pratama QRIS gateway (`https://remoteqr.dspratama.co.id`) has no webhook and DSP transactions don't reliably carry a partner reference number, payment confirmation works by **polling DSP and matching transactions to orders by exact amount**. To make amount-matching unambiguous, every QRIS order reserves a unique amount for a limited time before generating its QR code.
 
-When payment is received (from e-wallet provider):
+### Amount Locking
 
-1. Update order's `paymentStatus` to "PAID"
-2. Trigger order processing notification
-3. Update order's `status` to "IN_QUEUE" or next stage
+- Collection `qrisAmountLocks/{amount}` (doc ID = the amount itself): `{ amount, orderId, tableNumber, status: LOCKED|RELEASED, lockedAt, expiresAt }`.
+- When a customer checks out with QRIS, the client (`web/app.js: reserveQrisAmount()`) atomically tries `baseAmount`, then `baseAmount + feeAmount`, `+2*feeAmount`, ... (Firestore transaction against `qrisAmountLocks/{candidate}`) until it claims an amount that's unlocked or whose lock has expired.
+- The order stores `qrisBaseAmount`, `qrisAmount` (the amount actually encoded in the QR), `qrisFeeSteps`, and `paymentLockExpiresAt`.
+- The lock is held for `QRIS_CONFIG.lockDurationMs` (default 5 minutes). After it expires, the amount becomes reusable by new orders — but the original order **stays `PENDING`** so a late payment can still be matched by amount as long as nobody else has reused it since.
+- `feeAmount` (default Rp 1) and `lockDurationMs` are configured in `web/config.js` under `window.QRIS_CONFIG`.
 
-### REST API Endpoints (if using Cloud Functions)
+### DSP Transaction Checking (Netlify Functions)
+
+Credentials (`DS_APP_BASE_URL`, `DS_APP_USERNAME`, `DS_APP_PASSWORD`, `DS_APP_MID`) and Firestore Admin credentials (`FIREBASE_SERVICE_ACCOUNT_JSON`) live only in **Netlify site environment variables** — never in client code.
+
+- `netlify/functions/lib/dsp-client.js` — logs into DSP (`POST /login`), caches the session cookie, and fetches `GET /trx-qr?fromDate&toDate&mid`, parsing the HTML-embedded `reportData` JSON payload.
+- `netlify/functions/lib/reconcile.js` — for each `APPROVED` transaction not already processed (deduped via `qrisProcessedTransactions/{transactionId}`), finds the oldest `orders` doc with matching `paymentMethod=QRIS`, `paymentStatus=PENDING`, `qrisAmount=AMOUNT`, marks it `PAID`, and releases its amount lock. Also sweeps expired locks (`status=LOCKED && expiresAt < now` -> `RELEASED`).
+- `netlify/functions/scheduled-check-dsp.js` — Netlify **Scheduled Function** (cron `* * * * *`, i.e. every minute — Netlify's minimum granularity) that scans the last 15 minutes of DSP transactions and reconciles them. This is the reliability safety net.
+- `netlify/functions/check-payment-now.js` — on-demand HTTP function called by the client's existing 3s payment-status polling loop to trigger a faster DSP check. Actual DSP calls are throttled globally (via a `system/dspPollThrottle` Firestore doc) to roughly once every 7 seconds regardless of how many customers are polling simultaneously, so many concurrent customers don't cause excessive DSP logins.
+
+Both the Admin SDK functions bypass Firestore security rules entirely (see `firestore.rules`) — they are the only components allowed to mark an order `PAID` or release someone else's amount lock.
+
+### REST API Endpoints (Implemented)
 
 ```
-POST /api/qris/generate
-  - Input: orderId, amount
-  - Output: { qrisString, qrCodeImage }
+GET /.netlify/functions/check-payment-now?orderId=<id>
+  - Throttled on-demand DSP check + returns current order payment status
+  - Output: { ok, paymentStatus, qrisAmount, paymentLockExpiresAt, checkedDsp }
 
-GET /api/qris/status/:orderId
-  - Output: { status: "PENDING" | "PAID" | "FAILED" }
-
-POST /api/qris/webhook
-  - Receives payment notifications from e-wallet provider
+(scheduled, not HTTP-invokable) netlify/functions/scheduled-check-dsp.js
+  - Runs every 1 minute via Netlify Scheduled Functions
 ```
 
 ## Testing QRIS Implementation
@@ -283,17 +293,29 @@ const QRIS_MAX_POLLING_TIME = 600000;  // 10 minutes
 
 ### Firestore Rules
 
-```
-match /orders/{orderId} {
-  allow read, write: if request.auth != null;
-  // Add specific rules as needed
-}
+The full, deployable ruleset lives in `firestore.rules` at the repo root (with matching composite indexes in `firestore.indexes.json`). Deploy with:
 
-match /qrisTransactions/{transactionId} {
-  allow read, write: if request.auth != null;
-  // Add specific rules as needed
-}
 ```
+firebase deploy --only firestore:rules,firestore:indexes
+```
+
+Key invariants enforced:
+- Anonymous customers (the web app) may only **create** orders, always starting as `paymentStatus: PENDING`, `status: PENDING` — they can never mark their own order `PAID` or update it afterwards.
+- Anonymous customers may claim (`create`/`update`) a `qrisAmountLocks/{amount}` doc only if it's currently unlocked or expired, and can never set it to `RELEASED` themselves.
+- Only the authenticated seller/admin app (`request.auth != null`) may update/delete orders.
+- `qrisProcessedTransactions` and `system/*` are fully denied to all clients — only the Netlify Functions' Admin SDK (which bypasses rules) may read/write them.
+
+### Environment Variables (Netlify Site Settings)
+
+```
+DS_APP_BASE_URL=https://remoteqr.dspratama.co.id
+DS_APP_USERNAME=<dsp dashboard username>
+DS_APP_PASSWORD=<dsp dashboard password>
+DS_APP_MID=<merchant id to monitor>
+FIREBASE_SERVICE_ACCOUNT_JSON=<full service account JSON, single line>
+```
+
+`FIREBASE_SERVICE_ACCOUNT_JSON` comes from Firebase Console → Project Settings → Service Accounts → Generate new private key. These are used only by `netlify/functions/*` (server-side) and are never exposed to the browser.
 
 ## Troubleshooting
 

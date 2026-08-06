@@ -48,6 +48,14 @@ node_modules/
 .netlify/
 dist/
 
+# ---- Environment secrets ----
+.env
+.env.*
+web/.env
+web/.env.*
+*.swp
+*.swo
+
 # ---- Gradle ----
 .gradle/
 **/build/

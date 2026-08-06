@@ -1,0 +1,165 @@
+rules_version = '2';
+
+// ---------------------------------------------------------------------------
+// Culinary Order System — Firestore Security Rules
+//
+// Trust model:
+//   - The customer web app (web/) is ANONYMOUS (no Firebase Auth). It may
+//     only ever CREATE orders/locks, never grant itself elevated state
+//     (e.g. it can never mark its own order as PAID).
+//   - The seller/admin Android app signs in with Firebase Auth
+//     (see AuthRepositoryImpl.kt) — request.auth != null identifies it.
+//   - The Netlify Functions backend (netlify/functions/) uses the Firebase
+//     Admin SDK, which BYPASSES these rules entirely. That is intentional:
+//     it is the only component allowed to mark orders PAID and release
+//     amount locks, since it's the only party that has verified the
+//     transaction against the DSP Pratama QRIS gateway.
+// ---------------------------------------------------------------------------
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isNonEmptyString(v) {
+      return v is string && v.size() > 0;
+    }
+
+    // -------------------------------------------------------------------
+    // Settings — public read (business name, etc.), admin-only write
+    // -------------------------------------------------------------------
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // -------------------------------------------------------------------
+    // Menu Items / Categories — public read, admin-only write
+    // -------------------------------------------------------------------
+    match /menuItems/{itemId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated()
+        && request.resource.data.name is string
+        && request.resource.data.price is number
+        && request.resource.data.price >= 0;
+      allow delete: if isAuthenticated();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // -------------------------------------------------------------------
+    // Orders
+    //
+    // Customers (anonymous) may only CREATE a new order, and must create it
+    // in its initial, unpaid state. They can never update or delete an
+    // order afterwards — status/paymentStatus transitions are only made by
+    // the authenticated seller app or the Admin-SDK backend function
+    // (which bypasses these rules).
+    // -------------------------------------------------------------------
+    match /orders/{orderId} {
+      allow read: if true;
+
+      allow create: if isValidNewOrder();
+
+      // Only the authenticated seller/admin app may mutate an existing
+      // order (e.g. advance status, cancel it, etc.). The payment
+      // reconciliation backend uses the Admin SDK and bypasses this rule.
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+
+      function isValidNewOrder() {
+        let data = request.resource.data;
+        return isNonEmptyString(data.tableNumber)
+          && isNonEmptyString(data.sessionId)
+          && data.items is list
+          && data.items.size() > 0
+          // Orders must always be created as PENDING — a client can never
+          // create itself as already PAID/IN_QUEUE/etc.
+          && data.status == "PENDING"
+          && data.paymentMethod in ["QRIS", "BANK_TRANSFER", "CASHIER"]
+          && data.paymentStatus == "PENDING"
+          && isValidQrisFields(data);
+      }
+
+      // If paying via QRIS, the amount fields must be present, numeric,
+      // and internally consistent (final amount = base + fee steps),
+      // and a lock expiry must be set no more than ~6 minutes out (5 min
+      // lock + small clock-skew buffer) to prevent artificially long locks.
+      function isValidQrisFields(data) {
+        return data.paymentMethod != "QRIS"
+          || (
+            data.qrisBaseAmount is number && data.qrisBaseAmount > 0
+            && data.qrisAmount is number && data.qrisAmount > 0
+            && data.qrisFeeSteps is number && data.qrisFeeSteps >= 0
+            && data.qrisAmount == data.qrisBaseAmount + data.qrisFeeSteps
+            && data.paymentLockExpiresAt is timestamp
+            && data.paymentLockExpiresAt <= request.time + duration.value(6, 'm')
+          );
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // QRIS Amount Locks — reserves a unique QR amount for up to 5 minutes.
+    // Doc ID is the locked amount itself (e.g. "10001").
+    //
+    // Anonymous clients may CLAIM a lock (create it, or overwrite it once
+    // it has been released/expired) but can NEVER set it to RELEASED
+    // themselves — only the Admin-SDK backend (bypassing these rules) may
+    // release a lock early upon confirmed payment. This prevents a client
+    // from griefing another customer's active lock.
+    // -------------------------------------------------------------------
+    match /qrisAmountLocks/{amount} {
+      allow read: if true;
+      allow create: if isValidLockClaim();
+      allow update: if isValidLockClaim() && isPriorLockClaimable();
+      allow delete: if false;
+
+      function isValidLockClaim() {
+        let data = request.resource.data;
+        return data.amount is number
+          && string(data.amount) == amount
+          && data.status == "LOCKED"
+          && isNonEmptyString(data.orderId)
+          && isNonEmptyString(data.tableNumber)
+          && data.lockedAt is timestamp
+          && data.expiresAt is timestamp
+          && data.expiresAt > request.time
+          && data.expiresAt <= request.time + duration.value(6, 'm');
+      }
+
+      // A lock may only be claimed (overwritten) if it isn't currently
+      // held, or its hold has expired.
+      function isPriorLockClaimable() {
+        return resource.data.status != "LOCKED" || resource.data.expiresAt < request.time;
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // Internal backend-only collections — never accessed by any client,
+    // only by the Admin SDK (which bypasses rules). Explicitly deny all
+    // client access.
+    // -------------------------------------------------------------------
+    match /qrisProcessedTransactions/{transactionId} {
+      allow read, write: if false;
+    }
+
+    match /system/{docId} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // Default deny — anything not explicitly matched above is blocked.
+    // -------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

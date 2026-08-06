@@ -38,6 +38,7 @@ const state = {
   db:          null,
   ordersListener: null,
   qrisPollingTimer: null,  // Timer for payment status polling
+  qrisCountdownTimer: null,  // Timer for the 5-minute amount-lock countdown
   currentPaymentOrderId: null  // Store current order ID for payment tracking
 };
 
@@ -83,13 +84,13 @@ async function initFirebase() {
     const { initializeApp } = await import(
       "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js"
     );
-    const { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy, doc, getDoc } = await import(
+    const { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy, doc, getDoc, runTransaction } = await import(
       "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js"
     );
     const app = initializeApp(FIREBASE_CONFIG);
     state.db = getFirestore(app);
     // Expose Firestore helpers on state for later use
-    state._firestore = { collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy, doc, getDoc };
+    state._firestore = { collection, getDocs, query, where, addDoc, serverTimestamp, onSnapshot, orderBy, doc, getDoc, runTransaction };
   } catch (err) {
     console.error("Firebase init failed:", err);
     showError("Tidak dapat terhubung ke server.");
@@ -753,6 +754,8 @@ async function placeOrder() {
   btn.disabled = true;
   btn.textContent = "Memproses...";
 
+  let reservedLock = null; // { amount, orderId } — released on failure
+
   try {
     const customerName = document.getElementById("customerName").value.trim();
     const notes = document.getElementById("orderNotes").value.trim();
@@ -768,6 +771,11 @@ async function placeOrder() {
       notes:           c.notes
     }));
 
+    // Generate the order ID up-front so QRIS amount locks (which need to
+    // reference an orderId) can be reserved before the order document
+    // itself is created inside the stock transaction below.
+    const orderId = generateId();
+
     const order = {
       tableNumber:   state.tableNumber,
       sessionId:     state.sessionId,    // Unique session ID to identify this customer
@@ -775,11 +783,23 @@ async function placeOrder() {
       items:         orderItems,
       status:        "PENDING",
       paymentMethod: paymentMethod,
+      paymentStatus: "PENDING",
       notes:         notes,
       createdAt:     state._firestore.serverTimestamp(),
       updatedAt:     state._firestore.serverTimestamp(),
       estimatedReadyMinutes: 15
     };
+
+    if (paymentMethod === "QRIS") {
+      const baseAmount = state.cart.reduce((s, c) => s + c.subtotal, 0);
+      const reservation = await reserveQrisAmount(baseAmount, orderId, state.tableNumber);
+      reservedLock = { amount: reservation.finalAmount, orderId };
+
+      order.qrisBaseAmount = baseAmount;
+      order.qrisAmount = reservation.finalAmount;
+      order.qrisFeeSteps = reservation.feeSteps;
+      order.paymentLockExpiresAt = reservation.expiresAt;
+    }
 
     // Import transaction functions
     const { runTransaction, doc } = await import(
@@ -787,7 +807,7 @@ async function placeOrder() {
     );
 
     // Use transaction to check and update stock atomically
-    const orderId = await runTransaction(state.db, async (transaction) => {
+    await runTransaction(state.db, async (transaction) => {
       // Phase 1: Read all menu items first (Firestore requires all reads before all writes)
       const stockUpdates = [];
       for (const item of orderItems) {
@@ -819,25 +839,128 @@ async function placeOrder() {
         transaction.update(update.ref, { stock: update.newStock });
       }
 
-      // Create the order
-      const orderRef = doc(state.db, "orders", generateId());
+      // Create the order using the pre-generated ID
+      const orderRef = doc(state.db, "orders", orderId);
       transaction.set(orderRef, order);
-      return orderRef.id;
     });
 
-    showSuccess(orderId, state.tableNumber, paymentMethod);
+    showSuccess(orderId, state.tableNumber, paymentMethod, order.qrisAmount, order.paymentLockExpiresAt);
   } catch (err) {
     console.error("placeOrder error:", err);
     alert(err.message || "Gagal mengirim pesanan. Coba lagi.");
     btn.disabled = false;
     btn.textContent = "Pesan Sekarang";
+
+    // If we reserved a QRIS amount lock but the order itself failed to
+    // create, release it immediately instead of waiting 5 minutes so the
+    // amount isn't needlessly held.
+    if (reservedLock) {
+      await releaseQrisAmountLock(reservedLock.amount, reservedLock.orderId);
+    }
   }
 }
 
 // ---------------------------------------------------------------------------
+// QRIS Amount Locking
+//
+// Since the DSP QRIS gateway transactions don't reliably carry a partner
+// reference number, payments are matched to orders purely by amount. To
+// avoid ambiguity between two simultaneously pending QRIS orders that would
+// otherwise share the same total, each order reserves a *unique* amount for
+// a limited time (QRIS_CONFIG.lockDurationMs, default 5 minutes) in the
+// `qrisAmountLocks` Firestore collection. If the exact base amount is
+// already locked by another still-pending order, a small qris_fee
+// (QRIS_CONFIG.feeAmount) is added repeatedly until a free amount is found.
+// ---------------------------------------------------------------------------
+
+/**
+ * Attempt to atomically reserve a unique QRIS amount for the given order.
+ * @param {number} baseAmount - the order's natural total (before any fee)
+ * @param {string} orderId - the pre-generated order ID this lock belongs to
+ * @param {string} tableNumber
+ * @returns {Promise<{finalAmount:number, feeSteps:number, expiresAt:Date}>}
+ */
+async function reserveQrisAmount(baseAmount, orderId, tableNumber) {
+  const { doc, runTransaction, serverTimestamp } = state._firestore;
+  const qrisConfig = window.QRIS_CONFIG || {};
+  const feeAmount = qrisConfig.feeAmount ?? 1;
+  const lockDurationMs = qrisConfig.lockDurationMs ?? 300000;
+  const maxAttempts = qrisConfig.maxReservationAttempts ?? 50;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const candidateAmount = baseAmount + attempt * feeAmount;
+    const lockRef = doc(state.db, "qrisAmountLocks", String(candidateAmount));
+    const expiresAt = new Date(Date.now() + lockDurationMs);
+
+    try {
+      const claimed = await runTransaction(state.db, async (transaction) => {
+        const lockSnap = await transaction.get(lockRef);
+
+        if (lockSnap.exists()) {
+          const lockData = lockSnap.data();
+          const stillLocked =
+            lockData.status === "LOCKED" &&
+            lockData.expiresAt &&
+            lockData.expiresAt.toMillis() > Date.now();
+
+          if (stillLocked) {
+            return false; // Someone else's active lock; try the next amount
+          }
+        }
+
+        transaction.set(lockRef, {
+          amount: candidateAmount,
+          orderId,
+          tableNumber,
+          status: "LOCKED",
+          lockedAt: serverTimestamp(),
+          expiresAt
+        });
+        return true;
+      });
+
+      if (claimed) {
+        return {
+          finalAmount: candidateAmount,
+          feeSteps: attempt * feeAmount,
+          expiresAt
+        };
+      }
+    } catch (err) {
+      console.error(`Failed to claim QRIS amount ${candidateAmount}:`, err);
+      // Continue trying subsequent amounts rather than failing outright
+    }
+  }
+
+  throw new Error("Gagal mengalokasikan nominal QRIS. Silakan coba lagi.");
+}
+
+/**
+ * Release a QRIS amount lock early (e.g. if order creation failed after
+ * the amount was already reserved). Only releases the lock if it still
+ * belongs to this order, to avoid interfering with a newer reservation.
+ */
+async function releaseQrisAmountLock(amount, orderId) {
+  try {
+    const { doc, runTransaction } = state._firestore;
+    const lockRef = doc(state.db, "qrisAmountLocks", String(amount));
+    await runTransaction(state.db, async (transaction) => {
+      const lockSnap = await transaction.get(lockRef);
+      if (lockSnap.exists() && lockSnap.data().orderId === orderId) {
+        transaction.update(lockRef, { status: "RELEASED", releasedReason: "ORDER_CREATE_FAILED" });
+      }
+    });
+  } catch (err) {
+    console.error("Failed to release QRIS amount lock:", err);
+  }
+}
+
+
+
+// ---------------------------------------------------------------------------
 // Success
 // ---------------------------------------------------------------------------
-function showSuccess(orderId, tableNumber, paymentMethod) {
+function showSuccess(orderId, tableNumber, paymentMethod, qrisAmount, paymentLockExpiresAt) {
   const paymentLabels = {
     QRIS: "QRIS",
     BANK_TRANSFER: "Transfer Bank",
@@ -856,7 +979,7 @@ function showSuccess(orderId, tableNumber, paymentMethod) {
   
   // Handle QRIS payment display and polling
   if (paymentMethod === "QRIS") {
-    handleQrisPayment(orderId);
+    handleQrisPayment(orderId, qrisAmount, paymentLockExpiresAt);
   } else {
     // Hide QRIS section for non-QRIS payments
     document.getElementById("qrisPaymentSection").style.display = "none";
@@ -873,6 +996,15 @@ function resetApp() {
   document.body.style.overflow = "";
   document.getElementById("customerName").value = "";
   document.getElementById("orderNotes").value = "";
+
+  if (state.qrisPollingTimer) {
+    clearInterval(state.qrisPollingTimer);
+    state.qrisPollingTimer = null;
+  }
+  if (state.qrisCountdownTimer) {
+    clearInterval(state.qrisCountdownTimer);
+    state.qrisCountdownTimer = null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -982,9 +1114,10 @@ function generateId() {
 // ---------------------------------------------------------------------------
 /**
  * Handle QRIS payment after order placement
- * Generates QRIS QR code and starts polling for payment status
+ * Generates QRIS QR code (using the pre-reserved locked amount) and starts
+ * polling for payment status.
  */
-function handleQrisPayment(orderId) {
+function handleQrisPayment(orderId, qrisAmount, paymentLockExpiresAt) {
   // Display QRIS payment section
   document.getElementById("qrisPaymentSection").style.display = "block";
   document.getElementById("successMessage").textContent = "Pesanan Anda telah diterima. Silakan lakukan pembayaran melalui QRIS.";
@@ -992,13 +1125,12 @@ function handleQrisPayment(orderId) {
   // Store current order ID for polling
   state.currentPaymentOrderId = orderId;
   
-  // Get the total amount from the checkout
-  const totalAmount = state.cart.reduce((s, c) => s + c.subtotal, 0);
-  
   try {
-    // Generate QRIS payment data
+    // Generate QRIS payment data using the amount locked for this order
+    // (may include a small qris_fee adjustment if the base amount was
+    // already reserved by another pending order — see reserveQrisAmount()).
     const qrisPayment = generateQrisPayment(
-      totalAmount,
+      qrisAmount,
       orderId.slice(-25)  // Use last 25 chars of order ID as reference
     );
     
@@ -1009,6 +1141,9 @@ function handleQrisPayment(orderId) {
       qrCode.src = qrisPayment.qrCodeImage;
       qrWrapper.style.display = "flex";
       
+      // Start the 5-minute amount-lock countdown display
+      startLockCountdown(paymentLockExpiresAt);
+
       // Start polling for payment status
       startPaymentPolling(orderId);
     } else {
@@ -1021,12 +1156,62 @@ function handleQrisPayment(orderId) {
 }
 
 /**
+ * Displays a live countdown until the reserved QRIS amount's lock expires.
+ * This is informational only — the order itself remains PENDING and can
+ * still be matched by amount after the lock expires, as long as the amount
+ * hasn't been reused by a newer order in the meantime.
+ */
+function startLockCountdown(expiresAt) {
+  const el = document.getElementById("qrisLockCountdown");
+  if (!el || !expiresAt) return;
+
+  if (state.qrisCountdownTimer) {
+    clearInterval(state.qrisCountdownTimer);
+  }
+
+  const expiresAtMs = expiresAt instanceof Date ? expiresAt.getTime() : new Date(expiresAt).getTime();
+
+  const render = () => {
+    const remainingMs = expiresAtMs - Date.now();
+    if (remainingMs <= 0) {
+      el.textContent = "Nominal QRIS ini mungkin akan digunakan ulang untuk pesanan lain. Jika Anda sudah membayar, pembayaran tetap akan terverifikasi.";
+      clearInterval(state.qrisCountdownTimer);
+      state.qrisCountdownTimer = null;
+      return;
+    }
+    const totalSeconds = Math.ceil(remainingMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    el.textContent = `Nominal berlaku selama ${minutes}:${String(seconds).padStart(2, "0")} lagi`;
+  };
+
+  render();
+  state.qrisCountdownTimer = setInterval(render, 1000);
+}
+
+/**
+ * Fire-and-forget call to the on-demand backend check. This nudges a
+ * faster DSP transaction check (throttled server-side across all
+ * concurrently polling customers) instead of waiting for the once-a-minute
+ * scheduled function. Any failure here is non-fatal — the client still
+ * relies on reading the order's paymentStatus directly from Firestore.
+ */
+function pingCheckPaymentNow(orderId) {
+  const endpoint = (window.QRIS_CONFIG || {}).checkPaymentEndpoint;
+  if (!endpoint) return;
+  fetch(`${endpoint}?orderId=${encodeURIComponent(orderId)}`).catch(err => {
+    console.warn("check-payment-now request failed (non-fatal):", err);
+  });
+}
+
+/**
  * Start polling for payment status
  * Checks Firestore periodically to see if payment has been confirmed
  */
 function startPaymentPolling(orderId) {
-  const pollingInterval = 3000; // Poll every 3 seconds
-  const maxPollingTime = 600000; // Stop polling after 10 minutes
+  const qrisConfig = window.QRIS_CONFIG || {};
+  const pollingInterval = qrisConfig.pollingInterval || 3000; // Poll every 3 seconds
+  const maxPollingTime = qrisConfig.maxPollingTime || 600000; // Stop polling after 10 minutes
   let pollingStartTime = Date.now();
   
   document.getElementById("qrisPollingStatus").style.display = "flex";
@@ -1047,6 +1232,10 @@ function startPaymentPolling(orderId) {
       return;
     }
     
+    // Nudge the backend to check DSP for new transactions (throttled
+    // server-side; safe to call every tick).
+    pingCheckPaymentNow(orderId);
+
     try {
       // Check order status from Firestore
       const { doc, getDoc } = state._firestore;
@@ -1082,6 +1271,11 @@ function handlePaymentConfirmed(orderId) {
   const pollingStatus = document.getElementById("qrisPollingStatus");
   const qrisStatus = document.getElementById("qrisStatus");
   
+  if (state.qrisCountdownTimer) {
+    clearInterval(state.qrisCountdownTimer);
+    state.qrisCountdownTimer = null;
+  }
+
   // Hide polling indicator
   pollingStatus.style.display = "none";
   qrWrapper.style.display = "none";
@@ -1106,6 +1300,11 @@ function showQrisError(message) {
   const pollingStatus = document.getElementById("qrisPollingStatus");
   const qrWrapper = document.getElementById("qrisQrWrapper");
   
+  if (state.qrisCountdownTimer) {
+    clearInterval(state.qrisCountdownTimer);
+    state.qrisCountdownTimer = null;
+  }
+
   pollingStatus.style.display = "none";
   qrWrapper.style.display = "none";
   

@@ -626,6 +626,13 @@ body {
   margin: 0;
 }
 
+.qris-lock-countdown {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  text-align: center;
+}
+
 #qrisPollingStatus {
   display: flex;
   flex-direction: column;

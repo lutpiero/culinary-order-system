@@ -1,0 +1,12 @@
+{
+  "name": "culinary-order-system-functions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Netlify Functions backend for QRIS payment reconciliation",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}
