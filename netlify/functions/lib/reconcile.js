@@ -80,6 +80,14 @@ async function reconcileTransactions(transactions) {
       }
 
       const orderDoc = ordersSnap.docs[0];
+
+      // Release the amount lock so it can be reused, but only if it still
+      // points at this order (avoid releasing a newer order's lock).
+      // Firestore requires all reads to precede all writes in a transaction,
+      // so this lock read must happen before the order update below.
+      const lockRef = db.collection("qrisAmountLocks").doc(String(amount));
+      const lockSnap = await t.get(lockRef);
+
       t.update(orderDoc.ref, {
         paymentStatus: "PAID",
         matchedTransactionId: txId,
@@ -89,10 +97,6 @@ async function reconcileTransactions(transactions) {
         updatedAt: now,
       });
 
-      // Release the amount lock so it can be reused, but only if it still
-      // points at this order (avoid releasing a newer order's lock).
-      const lockRef = db.collection("qrisAmountLocks").doc(String(amount));
-      const lockSnap = await t.get(lockRef);
       if (lockSnap.exists && lockSnap.data().orderId === orderDoc.id) {
         t.update(lockRef, { status: "RELEASED", releasedAt: now, releasedReason: "PAID" });
       }
