@@ -9,4 +9,11 @@ interface StorageRepository {
      * @param path the storage path, e.g. "menu_images/abc123.jpg"
      */
     suspend fun uploadImage(uri: Uri, path: String): Result<String>
+
+    /**
+     * Delete an image from Firebase Storage given its download URL.
+     * The storage object path is derived from the URL.
+     * @param imageUrl a Firebase Storage download URL
+     */
+    suspend fun deleteImage(imageUrl: String): Result<Unit>
 }

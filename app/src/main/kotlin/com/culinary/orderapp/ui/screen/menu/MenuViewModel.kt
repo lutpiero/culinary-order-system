@@ -14,6 +14,7 @@ import com.culinary.orderapp.domain.usecase.ObserveSettingsUseCase
 import com.culinary.orderapp.domain.usecase.SaveCategoryUseCase
 import com.culinary.orderapp.domain.usecase.SaveMenuItemUseCase
 import com.culinary.orderapp.domain.usecase.ToggleMenuItemAvailabilityUseCase
+import com.culinary.orderapp.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -114,6 +115,11 @@ class MenuViewModel @Inject constructor(
 
     fun deleteItem(itemId: String) {
         viewModelScope.launch {
+            val item = _uiState.value.menuItems.find { it.id == itemId }
+            item?.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                storageRepository.deleteImage(url)
+                    .onFailure { Logger.w("Could not delete image $url: ${it.message}", TAG) }
+            }
             val result = deleteMenuItem(itemId)
             _uiState.value = _uiState.value.copy(
                 successMessage = if (result.isSuccess) "Item berhasil dihapus" else null,
@@ -122,8 +128,18 @@ class MenuViewModel @Inject constructor(
         }
     }
 
+    private var loadedItemId: String? = null
+
     fun loadItemForEdit(itemId: String?, allItems: List<MenuItem>) {
-        val item = if (itemId != null) allItems.find { it.id == itemId } ?: MenuItem() else MenuItem()
+        if (itemId == null) {
+            if (loadedItemId == "new") return
+            loadedItemId = "new"
+            _formState.value = MenuItemFormState(item = MenuItem())
+            return
+        }
+        if (loadedItemId == itemId) return
+        val item = allItems.find { it.id == itemId } ?: return
+        loadedItemId = itemId
         _formState.value = MenuItemFormState(item = item)
     }
 
@@ -164,6 +180,19 @@ class MenuViewModel @Inject constructor(
         }
     }
 
+    fun removeMenuImage() {
+        viewModelScope.launch {
+            val url = _formState.value.item.imageUrl
+            if (url.isNotBlank()) {
+                storageRepository.deleteImage(url)
+                    .onFailure { Logger.w("Could not delete image $url: ${it.message}", TAG) }
+            }
+            _formState.value = _formState.value.copy(
+                item = _formState.value.item.copy(imageUrl = "")
+            )
+        }
+    }
+
     fun saveNewCategory(name: String) {
         viewModelScope.launch {
             val category = Category(name = name, displayOrder = _uiState.value.categories.size)
@@ -199,5 +228,9 @@ class MenuViewModel @Inject constructor(
             val updatedItem = menuItem.copy(toppingGroups = updatedGroups)
             saveMenuItem(updatedItem)
         }
+    }
+
+    companion object {
+        private const val TAG = "MenuViewModel"
     }
 }

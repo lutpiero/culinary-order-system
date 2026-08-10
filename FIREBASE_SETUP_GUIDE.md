@@ -155,6 +155,26 @@ service cloud.firestore {
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 ```
 
+#### Issue 4: Menu Image Upload Fails (Firebase Storage)
+**Error:** Uploading a menu image from the app fails, or images never appear in Firebase Console → Storage
+
+**Where images go:** Firebase Cloud Storage (default bucket), under `menu_images/<menuItemId>.jpg` (business logo → `business_icons/logo.jpg`). Only the download URL is stored in Firestore (`menuItems/<id>.imageUrl`).
+
+**Solution:** Deploy the Storage security rules (included in the repo):
+```bash
+firebase deploy --only storage
+```
+
+The rules in `storage.rules` mirror Firestore: menu images and the business logo are **publicly readable** (the anonymous customer web app needs them to render menus) but **writable only by authenticated users** (the seller/admin Android app). If the default rules from the console (which deny unauthenticated reads) are active, menu images will 404 in the web app; if writes are denied, uploads fail.
+
+**Checklist:**
+- [ ] `storage.rules` deployed (`firebase deploy --only storage`)
+- [ ] `firebase.json` has a `storage.rules` entry pointing to `storage.rules`
+- [ ] The Android app signs in with Firebase Auth before uploading (upload requires `request.auth != null`)
+- [ ] Check Logcat for `Image uploaded successfully` or `Error uploading image to`
+
+**Orphan cleanup:** Deleting a menu item now also deletes its storage object (`menu_images/<id>.jpg`), as does the "Hapus" (remove image) button. Files uploaded but never saved (e.g. user backs out of the add-item screen) are still left behind — clean those up manually in the Storage console.
+
 ## Summary
 
 - ✅ **CI/CD:** Already configured with GitHub secrets

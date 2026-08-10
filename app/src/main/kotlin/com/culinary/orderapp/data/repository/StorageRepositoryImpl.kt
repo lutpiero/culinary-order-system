@@ -34,6 +34,35 @@ class StorageRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun deleteImage(imageUrl: String): Result<Unit> {
+        return try {
+            val path = storagePathFromUrl(imageUrl)
+            if (path == null) {
+                Logger.w("Cannot delete image, not a Firebase Storage URL: $imageUrl", TAG)
+                return Result.failure(IllegalArgumentException("Invalid image URL"))
+            }
+            Logger.d("Deleting image at $path", TAG)
+            storage.reference.child(path).delete().await()
+            Logger.i("Image deleted: $path", TAG)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Logger.e("Error deleting image $imageUrl", e, TAG)
+            Result.failure(e)
+        }
+    }
+
+    private fun storagePathFromUrl(imageUrl: String): String? {
+        return try {
+            val uri = Uri.parse(imageUrl)
+            val segments = uri.pathSegments
+            val oIndex = segments.indexOf("o")
+            if (oIndex == -1 || oIndex >= segments.size - 1) return null
+            Uri.decode(segments[oIndex + 1])
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     companion object {
         private const val TAG = "StorageRepository"
     }

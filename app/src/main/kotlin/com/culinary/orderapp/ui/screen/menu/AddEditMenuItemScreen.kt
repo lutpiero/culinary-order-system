@@ -220,7 +220,7 @@ fun AddEditMenuItemScreen(
                         }
                         if (item.imageUrl.isNotBlank()) {
                             OutlinedButton(
-                                onClick = { viewModel.updateFormItem(item.copy(imageUrl = "")) }
+                                onClick = { viewModel.removeMenuImage() }
                             ) {
                                 Text("Hapus")
                             }
