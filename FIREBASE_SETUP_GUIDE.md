@@ -155,25 +155,35 @@ service cloud.firestore {
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 ```
 
-#### Issue 4: Menu Image Upload Fails (Firebase Storage)
-**Error:** Uploading a menu image from the app fails, or images never appear in Firebase Console → Storage
+#### Issue 4: Menu Image Upload Fails (Cloudinary)
+**Error:** Uploading a menu image or the company logo fails with "Object does not exist at location" (or any upload error).
 
-**Where images go:** Firebase Cloud Storage (default bucket), under `menu_images/<menuItemId>.jpg` (business logo → `business_icons/logo.jpg`). Only the download URL is stored in Firestore (`menuItems/<id>.imageUrl`).
+> The app **no longer uses Firebase Storage**. Images are uploaded to **Cloudinary** (free plan, no credit card) and the returned `secure_url` is stored in Firestore (`menuItems/<id>.imageUrl` and `settings.logoUrl`). The web app renders those URLs as-is.
 
-**Solution:** Deploy the Storage security rules (included in the repo):
-```bash
-firebase deploy --only storage
-```
-
-The rules in `storage.rules` mirror Firestore: menu images and the business logo are **publicly readable** (the anonymous customer web app needs them to render menus) but **writable only by authenticated users** (the seller/admin Android app). If the default rules from the console (which deny unauthenticated reads) are active, menu images will 404 in the web app; if writes are denied, uploads fail.
+**Setup (one time, ~10 minutes):**
+1. Create a free Cloudinary account → note your **Cloud Name**.
+2. In Console → **Settings → Upload → Upload presets → Add upload preset**:
+   - Name it e.g. `menu_images` and mark it **unsigned**.
+   - Recommended hardening: `allowed_formats` = `jpg,jpeg,png,webp`, `max_file_size` = `10485760` (10 MB).
+3. Configure the Android build (in `gradle.properties` or `~/.gradle/gradle.properties`):
+   ```
+   CLOUDINARY_CLOUD_NAME=your-cloud-name
+   CLOUDINARY_UPLOAD_PRESET=your-unsigned-preset
+   ```
+   These are read as `BuildConfig` fields (`app/build.gradle.kts`). Rebuild the app afterwards.
+4. For image deletion (orphan cleanup when a menu item or its image is removed), deploy the included `delete-image` Netlify function with these env vars:
+   ```
+   CLOUDINARY_CLOUD_NAME
+   CLOUDINARY_API_KEY
+   CLOUDINARY_API_SECRET
+   ```
+   and set `NETLIFY_FUNCTIONS_BASE_URL` (e.g. `https://your-site.netlify.app`) in the Android build config. If it's left blank, deleting an item still works but the old image file is left in Cloudinary (it only costs free-plan storage credits).
 
 **Checklist:**
-- [ ] `storage.rules` deployed (`firebase deploy --only storage`)
-- [ ] `firebase.json` has a `storage.rules` entry pointing to `storage.rules`
-- [ ] The Android app signs in with Firebase Auth before uploading (upload requires `request.auth != null`)
-- [ ] Check Logcat for `Image uploaded successfully` or `Error uploading image to`
-
-**Orphan cleanup:** Deleting a menu item now also deletes its storage object (`menu_images/<id>.jpg`), as does the "Hapus" (remove image) button. Files uploaded but never saved (e.g. user backs out of the add-item screen) are still left behind — clean those up manually in the Storage console.
+- [ ] Cloudinary cloud name + unsigned upload preset created
+- [ ] `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_UPLOAD_PRESET` set in gradle properties, app rebuilt
+- [ ] Logcat shows `Image uploaded successfully` (or `Cloudinary upload failed`) from `StorageRepository`
+- [ ] Optional: `delete-image` function deployed + `NETLIFY_FUNCTIONS_BASE_URL` set for cleanup
 
 ## Summary
 

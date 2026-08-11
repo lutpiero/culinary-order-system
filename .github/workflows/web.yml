@@ -83,6 +83,18 @@ jobs:
           };
           EOF
 
+      - name: Set Cloudinary env vars on Netlify
+        if: github.event_name != 'pull_request'
+        run: |
+          npx --yes netlify-cli@17 env:set CLOUDINARY_CLOUD_NAME "$CLOUDINARY_CLOUD_NAME" --site "${{ secrets.NETLIFY_SITE_ID }}"
+          npx --yes netlify-cli@17 env:set CLOUDINARY_API_KEY "$CLOUDINARY_API_KEY" --site "${{ secrets.NETLIFY_SITE_ID }}"
+          npx --yes netlify-cli@17 env:set CLOUDINARY_API_SECRET "$CLOUDINARY_API_SECRET" --site "${{ secrets.NETLIFY_SITE_ID }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3
         with:

@@ -28,6 +28,22 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        buildConfigField(
+            "String",
+            "CLOUDINARY_CLOUD_NAME",
+            "\"${project.findProperty("CLOUDINARY_CLOUD_NAME") ?: System.getenv("CLOUDINARY_CLOUD_NAME") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "CLOUDINARY_UPLOAD_PRESET",
+            "\"${project.findProperty("CLOUDINARY_UPLOAD_PRESET") ?: System.getenv("CLOUDINARY_UPLOAD_PRESET") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "NETLIFY_FUNCTIONS_BASE_URL",
+            "\"${project.findProperty("NETLIFY_FUNCTIONS_BASE_URL") ?: System.getenv("NETLIFY_FUNCTIONS_BASE_URL") ?: ""}\""
+        )
     }
     
     signingConfigs {
@@ -110,8 +126,10 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
-    implementation(libs.firebase.storage)
     implementation(libs.firebase.messaging)
+    
+    // Networking
+    implementation(libs.okhttp)
     
     // Google Sign-In
     implementation(libs.play.services.auth)

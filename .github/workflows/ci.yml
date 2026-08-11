@@ -25,6 +25,11 @@ jobs:
     permissions:
       contents: read
 
+    env:
+      CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+      CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
+      NETLIFY_FUNCTIONS_BASE_URL: ${{ secrets.NETLIFY_FUNCTIONS_BASE_URL }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
