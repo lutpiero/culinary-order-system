@@ -66,7 +66,7 @@ class StorageRepositoryImpl @Inject constructor(
             client.newCall(request).execute().use { response ->
                 val responseBody = response.body?.string().orEmpty()
                 if (!response.isSuccessful) {
-                    Logger.e("Cloudinary upload failed: HTTP ${response.code} $responseBody", TAG)
+                    Logger.e("Cloudinary upload failed: HTTP ${response.code} $responseBody", tag = TAG)
                     return Result.failure(Exception("Upload failed (HTTP ${response.code}): ${parseCloudinaryError(responseBody)}"))
                 }
                 val json = JSONObject(responseBody)
@@ -107,7 +107,7 @@ class StorageRepositoryImpl @Inject constructor(
                     Result.success(Unit)
                 } else {
                     val message = response.body?.string().orEmpty()
-                    Logger.e("Delete failed HTTP ${response.code}: $message", TAG)
+                    Logger.e("Delete failed HTTP ${response.code}: $message", tag = TAG)
                     Result.failure(Exception("Delete failed (HTTP ${response.code})"))
                 }
             }
