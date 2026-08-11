@@ -7,6 +7,8 @@ import com.culinary.orderapp.domain.repository.StorageRepository
 import com.culinary.orderapp.util.Logger
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -34,48 +36,50 @@ class StorageRepositoryImpl @Inject constructor(
 
     override suspend fun uploadImage(uri: Uri, path: String): Result<String> {
         return try {
-            val cloudName = BuildConfig.CLOUDINARY_CLOUD_NAME
-            val preset = BuildConfig.CLOUDINARY_UPLOAD_PRESET
-            if (cloudName.isBlank() || preset.isBlank()) {
-                return Result.failure(Exception("Cloudinary cloud name / upload preset is not configured"))
-            }
-
-            val folder = path.substringBefore('/')
-            val extension = path.substringAfterLast('.', "jpg")
-            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: return Result.failure(Exception("Cannot open image file"))
-            val contentType = context.contentResolver.getType(uri) ?: "image/jpeg"
-
-            val filePart = MultipartBody.Part.createFormData(
-                "file",
-                "image.$extension",
-                bytes.toRequestBody(contentType.toMediaType())
-            )
-            val body = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("upload_preset", preset)
-                .addFormDataPart("folder", folder)
-                .addPart(filePart)
-                .build()
-
-            val request = Request.Builder()
-                .url("https://api.cloudinary.com/v1_1/$cloudName/image/upload")
-                .post(body)
-                .build()
-
-            client.newCall(request).execute().use { response ->
-                val responseBody = response.body?.string().orEmpty()
-                if (!response.isSuccessful) {
-                    Logger.e("Cloudinary upload failed: HTTP ${response.code} $responseBody", tag = TAG)
-                    return Result.failure(Exception("Upload failed (HTTP ${response.code}): ${parseCloudinaryError(responseBody)}"))
+            withContext(Dispatchers.IO) {
+                val cloudName = BuildConfig.CLOUDINARY_CLOUD_NAME
+                val preset = BuildConfig.CLOUDINARY_UPLOAD_PRESET
+                if (cloudName.isBlank() || preset.isBlank()) {
+                    return Result.failure(Exception("Cloudinary cloud name / upload preset is not configured"))
                 }
-                val json = JSONObject(responseBody)
-                val url = json.optString("secure_url").ifBlank { json.optString("url") }
-                if (url.isBlank()) {
-                    return Result.failure(Exception("Upload failed: no URL in response"))
+
+                val folder = path.substringBefore('/')
+                val extension = path.substringAfterLast('.', "jpg")
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: return Result.failure(Exception("Cannot open image file"))
+                val contentType = context.contentResolver.getType(uri) ?: "image/jpeg"
+
+                val filePart = MultipartBody.Part.createFormData(
+                    "file",
+                    "image.$extension",
+                    bytes.toRequestBody(contentType.toMediaType())
+                )
+                val body = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("upload_preset", preset)
+                    .addFormDataPart("folder", folder)
+                    .addPart(filePart)
+                    .build()
+
+                val request = Request.Builder()
+                    .url("https://api.cloudinary.com/v1_1/$cloudName/image/upload")
+                    .post(body)
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string().orEmpty()
+                    if (!response.isSuccessful) {
+                        Logger.e("Cloudinary upload failed: HTTP ${response.code} $responseBody", tag = TAG)
+                        return Result.failure(Exception("Upload failed (HTTP ${response.code}): ${parseCloudinaryError(responseBody)}"))
+                    }
+                    val json = JSONObject(responseBody)
+                    val url = json.optString("secure_url").ifBlank { json.optString("url") }
+                    if (url.isBlank()) {
+                        return Result.failure(Exception("Upload failed: no URL in response"))
+                    }
+                    Logger.i("Image uploaded successfully: $url", TAG)
+                    Result.success(url)
                 }
-                Logger.i("Image uploaded successfully: $url", TAG)
-                Result.success(url)
             }
         } catch (e: Exception) {
             Logger.e("Error uploading image to $path", e, TAG)
@@ -101,14 +105,16 @@ class StorageRepositoryImpl @Inject constructor(
                 .delete()
                 .addHeader("Authorization", "Bearer $token")
                 .build()
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    Logger.i("Image deleted: $imageUrl", TAG)
-                    Result.success(Unit)
-                } else {
-                    val message = response.body?.string().orEmpty()
-                    Logger.e("Delete failed HTTP ${response.code}: $message", tag = TAG)
-                    Result.failure(Exception("Delete failed (HTTP ${response.code})"))
+            withContext(Dispatchers.IO) {
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        Logger.i("Image deleted: $imageUrl", TAG)
+                        Result.success(Unit)
+                    } else {
+                        val message = response.body?.string().orEmpty()
+                        Logger.e("Delete failed HTTP ${response.code}: $message", tag = TAG)
+                        Result.failure(Exception("Delete failed (HTTP ${response.code})"))
+                    }
                 }
             }
         } catch (e: Exception) {
