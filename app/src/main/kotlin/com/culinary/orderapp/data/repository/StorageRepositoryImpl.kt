@@ -39,14 +39,15 @@ class StorageRepositoryImpl @Inject constructor(
             withContext(Dispatchers.IO) {
                 val cloudName = BuildConfig.CLOUDINARY_CLOUD_NAME
                 val preset = BuildConfig.CLOUDINARY_UPLOAD_PRESET
+                Logger.d("Uploading $path to cloud '$cloudName' with preset '$preset'", TAG)
                 if (cloudName.isBlank() || preset.isBlank()) {
-                    return Result.failure(Exception("Cloudinary cloud name / upload preset is not configured"))
+                    return@withContext Result.failure(Exception("Cloudinary cloud name / upload preset is not configured"))
                 }
 
                 val folder = path.substringBefore('/')
                 val extension = path.substringAfterLast('.', "jpg")
                 val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: return Result.failure(Exception("Cannot open image file"))
+                    ?: return@withContext Result.failure(Exception("Cannot open image file"))
                 val contentType = context.contentResolver.getType(uri) ?: "image/jpeg"
 
                 val filePart = MultipartBody.Part.createFormData(
@@ -70,12 +71,12 @@ class StorageRepositoryImpl @Inject constructor(
                     val responseBody = response.body?.string().orEmpty()
                     if (!response.isSuccessful) {
                         Logger.e("Cloudinary upload failed: HTTP ${response.code} $responseBody", tag = TAG)
-                        return Result.failure(Exception("Upload failed (HTTP ${response.code}): ${parseCloudinaryError(responseBody)}"))
+                        return@withContext Result.failure(Exception("Upload failed (HTTP ${response.code}): ${parseCloudinaryError(responseBody)}"))
                     }
                     val json = JSONObject(responseBody)
                     val url = json.optString("secure_url").ifBlank { json.optString("url") }
                     if (url.isBlank()) {
-                        return Result.failure(Exception("Upload failed: no URL in response"))
+                        return@withContext Result.failure(Exception("Upload failed: no URL in response"))
                     }
                     Logger.i("Image uploaded successfully: $url", TAG)
                     Result.success(url)
