@@ -1,5 +1,6 @@
 package com.culinary.orderapp.ui.screen.orders
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -39,12 +41,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.culinary.orderapp.domain.model.OrderStatus
+import com.culinary.orderapp.domain.model.PaymentStatus
 import com.culinary.orderapp.ui.component.StatusBadge
+import com.culinary.orderapp.ui.theme.OnStatusReady
+import com.culinary.orderapp.ui.theme.StatusReady
 import com.culinary.orderapp.util.toRupiahFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -136,6 +143,10 @@ fun OrderDetailScreen(
                         text = "Pembayaran: ${order.paymentMethod.displayName}",
                         style = MaterialTheme.typography.bodyMedium
                     )
+
+                    if (order.paymentMethod != com.culinary.orderapp.domain.model.PaymentMethod.QRIS) {
+                        OrderPaymentStatus(status = order.paymentStatus)
+                    }
 
                     if (order.estimatedReadyMinutes > 0 &&
                         order.status !in listOf(OrderStatus.SERVED, OrderStatus.CANCELLED)
@@ -288,6 +299,32 @@ fun OrderDetailScreen(
             dismissButton = {
                 TextButton(onClick = { showCancelDialog = false }) { Text("Tidak") }
             }
+        )
+    }
+}
+
+@Composable
+private fun OrderPaymentStatus(status: PaymentStatus) {
+    val (container, content) = when (status) {
+        PaymentStatus.PAID -> StatusReady to OnStatusReady
+        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(container)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = when (status) {
+                PaymentStatus.PAID -> "Lunas"
+                PaymentStatus.PENDING -> "Belum Dibayar"
+                PaymentStatus.FAILED -> "Pembayaran Gagal"
+                PaymentStatus.CANCELLED -> "Pembayaran Dibatalkan"
+            },
+            color = content,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
         )
     }
 }

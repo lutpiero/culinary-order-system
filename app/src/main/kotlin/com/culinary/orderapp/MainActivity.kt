@@ -136,6 +136,7 @@ private fun AuthenticatedApp(currentUserState: CurrentUserState) {
 
     val topLevelRoutes = setOf(
         Screen.Orders.route,
+        Screen.Kasir.route,
         Screen.Menu.route,
         Screen.Finance.route,
         Screen.QrCode.route,
@@ -154,6 +155,9 @@ private fun AuthenticatedApp(currentUserState: CurrentUserState) {
                         val hasAccess = when (item.screen) {
                             is Screen.Finance -> currentUserState.hasPermission(
                                 com.culinary.orderapp.domain.model.Permission.VIEW_FINANCE
+                            )
+                            is Screen.Kasir -> currentUserState.hasPermission(
+                                com.culinary.orderapp.domain.model.Permission.MANAGE_ORDERS
                             )
                             is Screen.Menu -> currentUserState.hasPermission(
                                 com.culinary.orderapp.domain.model.Permission.VIEW_MENU

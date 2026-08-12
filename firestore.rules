@@ -8,12 +8,15 @@ rules_version = '2';
 //     only ever CREATE orders/locks, never grant itself elevated state
 //     (e.g. it can never mark its own order as PAID).
 //   - The seller/admin Android app signs in with Firebase Auth
-//     (see AuthRepositoryImpl.kt) — request.auth != null identifies it.
+//     (see AuthRepositoryImpl.kt) — request.auth != null identifies it. It
+//     may update orders incl. confirming CASHIER/BANK_TRANSFER payments
+//     (see isAllowedSellerOrderUpdate below), but may NEVER mark a QRIS
+//     order PAID itself.
 //   - The Netlify Functions backend (netlify/functions/) uses the Firebase
 //     Admin SDK, which BYPASSES these rules entirely. That is intentional:
-//     it is the only component allowed to mark orders PAID and release
-//     amount locks, since it's the only party that has verified the
-//     transaction against the DSP Pratama QRIS gateway.
+//     it is the only component allowed to mark QRIS orders PAID, since it's
+//     the only party that has verified the transaction against the DSP
+//     Pratama QRIS gateway.
 // ---------------------------------------------------------------------------
 
 service cloud.firestore {
@@ -88,10 +91,18 @@ service cloud.firestore {
       allow create: if isValidNewOrder();
 
       // Only the authenticated seller/admin app may mutate an existing
-      // order (e.g. advance status, cancel it, etc.). The payment
-      // reconciliation backend uses the Admin SDK and bypasses this rule.
-      allow update: if isAuthenticated();
+      // order (e.g. advance status, cancel it, confirm offline payments).
+      // The payment reconciliation backend uses the Admin SDK and bypasses
+      // this rule. QRIS orders can never be flipped to PAID by a client —
+      // that transition is reserved for the Admin-SDK backend.
+      allow update: if isAuthenticated() && isAllowedSellerOrderUpdate();
       allow delete: if isAuthenticated();
+
+      function isAllowedSellerOrderUpdate() {
+        return !(resource.data.paymentMethod == "QRIS"
+          && request.resource.data.paymentStatus == "PAID"
+          && resource.data.paymentStatus != "PAID");
+      }
 
       function isValidNewOrder() {
         let data = request.resource.data;

@@ -3,6 +3,7 @@ package com.culinary.orderapp.ui.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
@@ -10,6 +11,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String) {
     data object Orders : Screen("orders")
+    data object Kasir : Screen("kasir")
     data object Menu : Screen("menu")
     data object Finance : Screen("finance")
     data object QrCode : Screen("qrcode")
@@ -44,6 +46,7 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Orders, "Pesanan", Icons.Filled.Receipt),
+    BottomNavItem(Screen.Kasir, "Kasir", Icons.Filled.PointOfSale),
     BottomNavItem(Screen.Menu, "Menu", Icons.Filled.MenuBook),
     BottomNavItem(Screen.Finance, "Keuangan", Icons.Filled.AttachMoney),
     BottomNavItem(Screen.QrCode, "QR Meja", Icons.Filled.QrCode),

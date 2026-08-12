@@ -11,6 +11,7 @@ import com.culinary.orderapp.domain.model.Permission
 import com.culinary.orderapp.domain.state.CurrentUserState
 import com.culinary.orderapp.ui.component.RequirePermission
 import com.culinary.orderapp.ui.screen.finance.FinanceScreen
+import com.culinary.orderapp.ui.screen.kasir.KasirScreen
 import com.culinary.orderapp.ui.screen.menu.AddEditMenuItemScreen
 import com.culinary.orderapp.ui.screen.menu.AddEditToppingGroupScreen
 import com.culinary.orderapp.ui.screen.menu.CategoryManagementScreen
@@ -54,6 +55,12 @@ fun AppNavHost(
                 orderId = orderId,
                 onBack = { navController.popBackStack() }
             )
+        }
+
+        composable(Screen.Kasir.route) {
+            RequirePermission(Permission.MANAGE_ORDERS, currentUserState) {
+                KasirScreen()
+            }
         }
 
         composable(Screen.Menu.route) {

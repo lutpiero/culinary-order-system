@@ -84,6 +84,9 @@ data class OrderDto(
     val paymentMethod: String = PaymentMethod.CASHIER.name,
     val paymentStatus: String = PaymentStatus.PENDING.name,  // For tracking QRIS/online payments
     val paymentRefNo: String = "",  // Reference number for QRIS payment
+    val paidAt: Timestamp? = null,  // When payment was confirmed (cashier/cash or bank transfer)
+    val amountReceived: Long? = null,  // Cash received at the counter (for CASHIER)
+    val paymentProofUrl: String? = null,  // Optional proof-of-payment photo taken by cashier
     val notes: String = "",
     val createdAt: Timestamp = Timestamp.now(),
     val updatedAt: Timestamp = Timestamp.now(),
@@ -100,6 +103,9 @@ data class OrderDto(
         paymentMethod = runCatching { PaymentMethod.valueOf(paymentMethod) }.getOrDefault(PaymentMethod.CASHIER),
         paymentStatus = runCatching { PaymentStatus.valueOf(paymentStatus) }.getOrDefault(PaymentStatus.PENDING),
         paymentRefNo = paymentRefNo,
+        paidAt = paidAt?.toDate(),
+        amountReceived = amountReceived,
+        paymentProofUrl = paymentProofUrl,
         notes = notes,
         createdAt = createdAt.toDate(),
         updatedAt = updatedAt.toDate(),
@@ -118,6 +124,9 @@ data class OrderDto(
             paymentMethod = order.paymentMethod.name,
             paymentStatus = order.paymentStatus.name,
             paymentRefNo = order.paymentRefNo,
+            paidAt = order.paidAt?.let { Timestamp(it) },
+            amountReceived = order.amountReceived,
+            paymentProofUrl = order.paymentProofUrl,
             notes = order.notes,
             createdAt = Timestamp(order.createdAt),
             updatedAt = Timestamp(Date()),

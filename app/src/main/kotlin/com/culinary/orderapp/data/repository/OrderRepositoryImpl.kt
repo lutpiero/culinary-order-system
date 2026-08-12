@@ -4,6 +4,7 @@ import com.culinary.orderapp.data.model.OrderDto
 import com.culinary.orderapp.domain.model.Order
 import com.culinary.orderapp.domain.model.OrderStatus
 import com.culinary.orderapp.domain.model.PaymentMethod
+import com.culinary.orderapp.domain.model.PaymentStatus
 import com.culinary.orderapp.domain.model.SalesSummary
 import com.culinary.orderapp.domain.repository.OrderRepository
 import com.culinary.orderapp.util.Logger
@@ -49,6 +50,29 @@ class OrderRepositoryImpl @Inject constructor(
                 }.getOrNull()
             } ?: emptyList()
             Logger.d("Loaded ${orders.size} orders", TAG)
+            trySend(orders)
+        }
+        awaitClose { listener.remove() }
+    }
+
+    override fun observeUnpaidPayments(paymentMethods: List<PaymentMethod>): Flow<List<Order>> = callbackFlow {
+        val query = ordersCollection
+            .whereIn("paymentMethod", paymentMethods.map { it.name })
+            .whereEqualTo("paymentStatus", PaymentStatus.PENDING.name)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+        val listener = query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Logger.e("Error observing unpaid payments", error, TAG)
+                close(error)
+                return@addSnapshotListener
+            }
+            val orders = snapshot?.documents?.mapNotNull { doc ->
+                runCatching {
+                    doc.toObject(OrderDto::class.java)?.copy(id = doc.id)?.toDomain()
+                }.onFailure { e ->
+                    Logger.e("Error parsing order document ${doc.id}", e, TAG)
+                }.getOrNull()
+            }?.filter { it.status != OrderStatus.CANCELLED } ?: emptyList()
             trySend(orders)
         }
         awaitClose { listener.remove() }
@@ -161,6 +185,32 @@ class OrderRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun markOrderPaid(
+        orderId: String,
+        amountReceived: Long?,
+        paymentProofUrl: String?
+    ): Result<Unit> {
+        return try {
+            Logger.d("Marking order $orderId as paid", TAG)
+            val updates = mutableMapOf<String, Any>(
+                "paymentStatus" to PaymentStatus.PAID.name,
+                "paidAt" to Timestamp.now(),
+                "updatedAt" to Timestamp.now()
+            )
+            amountReceived?.let { updates["amountReceived"] = it }
+            paymentProofUrl?.let { updates["paymentProofUrl"] = it }
+            ordersCollection.document(orderId).update(updates).await()
+            Logger.i("Order $orderId marked as paid", TAG)
+            Result.success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Logger.e("Firestore error marking order paid", e, TAG)
+            Result.failure(e)
+        } catch (e: Exception) {
+            Logger.e("Unexpected error marking order paid", e, TAG)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun cancelOrder(orderId: String): Result<Unit> {
         Logger.d("Cancelling order: $orderId", TAG)
         return updateOrderStatus(orderId, OrderStatus.CANCELLED)
@@ -181,7 +231,7 @@ class OrderRepositoryImpl @Inject constructor(
                 }.onFailure { e ->
                     Logger.e("Error parsing order in summary: ${doc.id}", e, TAG)
                 }.getOrNull()
-            }.filter { it.status != OrderStatus.CANCELLED }
+            }.filter { it.status != OrderStatus.CANCELLED && it.paymentStatus == PaymentStatus.PAID }
 
             val totalRevenue = orders.sumOf { it.totalAmount }
             val qrisRevenue = orders

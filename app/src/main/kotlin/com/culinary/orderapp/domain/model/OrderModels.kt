@@ -77,6 +77,9 @@ data class Order(
      val paymentMethod: PaymentMethod = PaymentMethod.CASHIER,
      val paymentStatus: PaymentStatus = PaymentStatus.PENDING,  // For tracking QRIS/online payments
      val paymentRefNo: String = "",  // Reference number for QRIS payment
+     val paidAt: Date? = null,  // When payment was confirmed (cashier/cash or bank transfer)
+     val amountReceived: Long? = null,  // Cash received at the counter (for CASHIER)
+     val paymentProofUrl: String? = null,  // Optional proof-of-payment photo taken by cashier
      val notes: String = "",
      val createdAt: Date = Date(),
      val updatedAt: Date = Date(),
