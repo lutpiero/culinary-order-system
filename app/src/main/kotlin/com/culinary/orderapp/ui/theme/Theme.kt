@@ -17,13 +17,19 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = OrangeLight,
-    secondary = AmberAccent,
-    tertiary = AmberLight,
+    primary = OrangePrimaryDark,
+    onPrimary = Color(0xFF1C1B1F),
+    primaryContainer = OrangeContainerDark,
+    onPrimaryContainer = OnOrangeContainerDark,
+    secondary = AmberAccentDark,
+    onSecondary = Color(0xFF3F2900),
+    secondaryContainer = AmberContainerDark,
+    onSecondaryContainer = OnAmberContainerDark,
+    tertiary = ChestnutDark,
+    tertiaryContainer = ChestnutContainerDark,
+    onTertiaryContainer = OnChestnutContainerDark,
     background = Color(0xFF1C1B1F),
     surface = Color(0xFF2C2B2F),
-    onPrimary = Color.White,
-    onSecondary = Color(0xFF1C1B1F),
     onBackground = Color(0xFFE6E1E5),
     onSurface = Color(0xFFE6E1E5)
 )
@@ -31,12 +37,15 @@ private val DarkColorScheme = darkColorScheme(
 private val LightColorScheme = lightColorScheme(
     primary = OrangePrimary,
     onPrimary = Color.White,
-    primaryContainer = OrangeLight,
-    onPrimaryContainer = Color(0xFF1C1B1F),
+    primaryContainer = OrangeContainer,
+    onPrimaryContainer = OnOrangeContainer,
     secondary = AmberAccent,
-    onSecondary = Color(0xFF1C1B1F),
-    secondaryContainer = AmberLight,
-    onSecondaryContainer = Color(0xFF1C1B1F),
+    onSecondary = Color.White,
+    secondaryContainer = AmberContainer,
+    onSecondaryContainer = OnAmberContainer,
+    tertiary = Chestnut,
+    tertiaryContainer = ChestnutContainer,
+    onTertiaryContainer = OnChestnutContainer,
     background = Background,
     surface = Surface,
     onBackground = OnBackground,
@@ -62,7 +71,7 @@ fun CulinaryOrderTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

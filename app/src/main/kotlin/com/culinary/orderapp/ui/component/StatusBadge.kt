@@ -15,6 +15,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.culinary.orderapp.domain.model.OrderStatus
+import com.culinary.orderapp.ui.theme.OnStatusCancelled
+import com.culinary.orderapp.ui.theme.OnStatusInQueue
+import com.culinary.orderapp.ui.theme.OnStatusPending
+import com.culinary.orderapp.ui.theme.OnStatusPreparing
+import com.culinary.orderapp.ui.theme.OnStatusReady
+import com.culinary.orderapp.ui.theme.OnStatusServed
 import com.culinary.orderapp.ui.theme.StatusCancelled
 import com.culinary.orderapp.ui.theme.StatusInQueue
 import com.culinary.orderapp.ui.theme.StatusPending
@@ -28,12 +34,12 @@ import com.culinary.orderapp.ui.theme.StatusServed
 @Composable
 fun StatusBadge(status: OrderStatus, large: Boolean = false) {
     val (backgroundColor, textColor) = when (status) {
-        OrderStatus.PENDING -> StatusPending to Color.White
-        OrderStatus.IN_QUEUE -> StatusInQueue to Color.White
-        OrderStatus.PREPARING -> StatusPreparing to Color.White
-        OrderStatus.READY -> StatusReady to Color.White
-        OrderStatus.SERVED -> StatusServed to Color.White
-        OrderStatus.CANCELLED -> StatusCancelled to Color.White
+        OrderStatus.PENDING -> StatusPending to OnStatusPending
+        OrderStatus.IN_QUEUE -> StatusInQueue to OnStatusInQueue
+        OrderStatus.PREPARING -> StatusPreparing to OnStatusPreparing
+        OrderStatus.READY -> StatusReady to OnStatusReady
+        OrderStatus.SERVED -> StatusServed to OnStatusServed
+        OrderStatus.CANCELLED -> StatusCancelled to OnStatusCancelled
     }
 
     Box(
