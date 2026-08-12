@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -233,10 +235,10 @@ fun OrderDetailScreen(
                         if (awaitingPayment) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = androidx.compose.material3.CardDefaults.cardColors(
+                                colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer
                                 ),
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(10.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
