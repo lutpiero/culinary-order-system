@@ -227,6 +227,36 @@ fun OrderDetailScreen(
                             CircularProgressIndicator()
                         }
                     } else {
+                        val awaitingPayment = order.paymentMethod != com.culinary.orderapp.domain.model.PaymentMethod.QRIS
+                            && order.paymentStatus != com.culinary.orderapp.domain.model.PaymentStatus.PAID
+
+                        if (awaitingPayment) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = androidx.compose.material3.CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                ),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Cancel,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "Pesanan belum dapat diproses. Konfirmasi pembayaran terlebih dahulu melalui tab Kasir.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                            }
+                        } else {
                         when (order.status) {
                             OrderStatus.PENDING -> {
                                 Button(
@@ -263,6 +293,7 @@ fun OrderDetailScreen(
                             }
                             else -> {}
                         }
+                        } // end else (payment confirmed)
 
                         if (order.status !in listOf(OrderStatus.SERVED, OrderStatus.CANCELLED)) {
                             Spacer(modifier = Modifier.height(8.dp))
