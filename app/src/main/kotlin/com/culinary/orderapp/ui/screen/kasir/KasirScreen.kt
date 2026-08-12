@@ -62,6 +62,10 @@ import coil.compose.AsyncImage
 import com.culinary.orderapp.domain.model.Order
 import com.culinary.orderapp.domain.model.PaymentMethod
 import com.culinary.orderapp.util.toRupiahFormat
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 import java.io.File
 import java.util.UUID
 
@@ -247,6 +251,7 @@ private fun PaymentMethodBadge(method: PaymentMethod) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 private fun PayDialog(
     order: Order,
@@ -262,6 +267,9 @@ private fun PayDialog(
 ) {
     val context = LocalContext.current
     var pendingUri by remember { mutableStateOf<Uri?>(null) }
+    var showPermissionDeniedNote by remember { mutableStateOf(false) }
+
+    val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -269,9 +277,18 @@ private fun PayDialog(
         if (success && pendingUri != null) {
             onProofTaken(pendingUri!!)
         } else {
-            pendingUri?.let { context.contentResolver.delete(it, null, null) }
+            pendingUri?.let { runCatching { context.contentResolver.delete(it, null, null) } }
         }
         pendingUri = null
+    }
+
+    fun launchCamera() {
+        val file = createTempProofFile(context) ?: return
+        val uri = runCatching {
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        }.getOrNull() ?: run { file.delete(); return }
+        pendingUri = uri
+        cameraLauncher.launch(uri)
     }
 
     val isCash = order.paymentMethod == PaymentMethod.CASHIER
@@ -346,28 +363,36 @@ private fun PayDialog(
                             }
                         }
                     } else {
-                        OutlinedButton(
-                            onClick = {
-                                val file = createTempProofFile(context)
-                                if (file != null) {
-                                    val uri = FileProvider.getUriForFile(
-                                        context,
-                                        "${context.packageName}.fileprovider",
-                                        file
-                                    )
-                                    pendingUri = uri
-                                    cameraLauncher.launch(uri)
-                                }
-                            },
-                            enabled = !isPaying
-                        ) {
-                            Icon(
-                                Icons.Filled.CameraAlt,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Ambil Foto")
+                        Column(horizontalAlignment = Alignment.End) {
+                            OutlinedButton(
+                                onClick = {
+                                    showPermissionDeniedNote = false
+                                    when {
+                                        cameraPermission.status.isGranted -> launchCamera()
+                                        cameraPermission.status.shouldShowRationale -> {
+                                            showPermissionDeniedNote = true
+                                            cameraPermission.launchPermissionRequest()
+                                        }
+                                        else -> cameraPermission.launchPermissionRequest()
+                                    }
+                                },
+                                enabled = !isPaying
+                            ) {
+                                Icon(
+                                    Icons.Filled.CameraAlt,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Ambil Foto")
+                            }
+                            if (showPermissionDeniedNote) {
+                                Text(
+                                    "Izin kamera diperlukan",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     }
                 }
