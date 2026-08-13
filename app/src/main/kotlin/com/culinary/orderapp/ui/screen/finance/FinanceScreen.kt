@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -45,6 +46,7 @@ fun FinanceScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
+            windowInsets = WindowInsets(0, 0, 0, 0),
             title = {
                 Column {
                     if (uiState.businessName.isNotBlank()) {
@@ -59,7 +61,7 @@ fun FinanceScreen(
             },
             navigationIcon = {
                 Box(modifier = Modifier.padding(start = 8.dp)) {
-                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 36.dp)
+                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 40.dp)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(

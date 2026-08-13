@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,6 +78,7 @@ fun KasirScreen(viewModel: KasirViewModel = hiltViewModel()) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
+            windowInsets = WindowInsets(0, 0, 0, 0),
             title = {
                 Column {
                     if (uiState.businessName.isNotBlank()) {
@@ -91,7 +93,7 @@ fun KasirScreen(viewModel: KasirViewModel = hiltViewModel()) {
             },
             navigationIcon = {
                 Box(modifier = Modifier.padding(start = 8.dp)) {
-                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 36.dp)
+                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 40.dp)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(

@@ -42,6 +42,7 @@ fun AddEditUserScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = {
                     Text(
                         if (uiState.isEditMode) "Edit Pengguna" else "Tambah Pengguna",

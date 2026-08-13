@@ -51,6 +51,7 @@ fun SettingsScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
+            windowInsets = WindowInsets(0, 0, 0, 0),
             title = {
                 Column {
                     if (uiState.businessName.isNotBlank()) {
@@ -65,7 +66,7 @@ fun SettingsScreen(
             },
             navigationIcon = {
                 Box(modifier = Modifier.padding(start = 8.dp)) {
-                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 36.dp)
+                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 40.dp)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
