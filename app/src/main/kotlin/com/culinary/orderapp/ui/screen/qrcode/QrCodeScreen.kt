@@ -2,6 +2,7 @@ package com.culinary.orderapp.ui.screen.qrcode
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.culinary.orderapp.ui.component.BusinessLogoIcon
 import com.culinary.orderapp.util.generateQrCode
 
 /**
@@ -65,6 +67,11 @@ fun QrCodeScreen(viewModel: QrCodeViewModel = hiltViewModel()) {
                     Text("QR Code Meja", fontWeight = FontWeight.Bold)
                 }
             },
+            navigationIcon = {
+                Box(modifier = Modifier.padding(start = 8.dp)) {
+                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 36.dp)
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 titleContentColor = Color.White
@@ -75,7 +82,7 @@ fun QrCodeScreen(viewModel: QrCodeViewModel = hiltViewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

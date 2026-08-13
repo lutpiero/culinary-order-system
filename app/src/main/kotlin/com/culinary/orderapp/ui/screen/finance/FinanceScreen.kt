@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.culinary.orderapp.domain.model.SalesSummary
+import com.culinary.orderapp.ui.component.BusinessLogoIcon
 import com.culinary.orderapp.util.toRupiahFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,6 +57,11 @@ fun FinanceScreen(
                     Text("Laporan Keuangan", fontWeight = FontWeight.Bold)
                 }
             },
+            navigationIcon = {
+                Box(modifier = Modifier.padding(start = 8.dp)) {
+                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 36.dp)
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 titleContentColor = Color.White
@@ -66,7 +72,7 @@ fun FinanceScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(8.dp)
         ) {
             // Period selector
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {

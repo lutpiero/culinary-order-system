@@ -12,7 +12,8 @@ import javax.inject.Inject
 
 data class QrCodeUiState(
     val businessName: String = "",
-    val webUrl: String = ""
+    val webUrl: String = "",
+    val logoUrl: String? = null
 )
 
 @HiltViewModel
@@ -29,7 +30,8 @@ class QrCodeViewModel @Inject constructor(
                 if (settings != null) {
                     _uiState.value = QrCodeUiState(
                         businessName = settings.businessName,
-                        webUrl = settings.webUrl
+                        webUrl = settings.webUrl,
+                        logoUrl = settings.logoUrl
                     )
                 }
             }

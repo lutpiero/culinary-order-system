@@ -61,6 +61,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.culinary.orderapp.domain.model.Order
 import com.culinary.orderapp.domain.model.PaymentMethod
+import com.culinary.orderapp.ui.component.BusinessLogoIcon
 import com.culinary.orderapp.util.toRupiahFormat
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -86,6 +87,11 @@ fun KasirScreen(viewModel: KasirViewModel = hiltViewModel()) {
                         )
                     }
                     Text("Kasir", fontWeight = FontWeight.Bold)
+                }
+            },
+            navigationIcon = {
+                Box(modifier = Modifier.padding(start = 8.dp)) {
+                    BusinessLogoIcon(logoUrl = uiState.logoUrl, size = 36.dp)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(

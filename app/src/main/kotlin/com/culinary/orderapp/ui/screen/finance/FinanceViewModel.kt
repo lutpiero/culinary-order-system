@@ -25,7 +25,8 @@ data class FinanceUiState(
     val summary: SalesSummary? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val businessName: String = ""
+    val businessName: String = "",
+    val logoUrl: String? = null
 )
 
 @HiltViewModel
@@ -42,7 +43,10 @@ class FinanceViewModel @Inject constructor(
         viewModelScope.launch {
             observeSettings().collect { settings ->
                 if (settings != null) {
-                    _uiState.value = _uiState.value.copy(businessName = settings.businessName)
+                    _uiState.value = _uiState.value.copy(
+                        businessName = settings.businessName,
+                        logoUrl = settings.logoUrl
+                    )
                 }
             }
         }
