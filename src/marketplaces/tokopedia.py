@@ -1,20 +1,58 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import re
-from datetime import date
+import sys
+from datetime import date, datetime
 from pathlib import Path
 
 from loguru import logger
 from playwright.async_api import Page
+from playwright_stealth import Stealth
 
-from src.marketplaces.base import BaseMarketplace, MarketOrder, MarketProduct
+from src.marketplaces.base import BaseMarketplace, MarketOrder, MarketProduct, SessionExpiredError
+from src.notify import clear_login_alert
+
+
+def _chromium_ua() -> str:
+    """Realistic Chrome UA matching the host OS (a mismatched UA is a bot tell)."""
+    platform = (
+        "Windows NT 10.0; Win64; x64"
+        if sys.platform == "win32"
+        else "X11; Linux x86_64"
+        if sys.platform.startswith("linux")
+        else "Macintosh; Intel Mac OS X 10_15_7"
+    )
+    return f"Mozilla/5.0 ({platform}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36"
 
 
 class TokopediaAdapter(BaseMarketplace):
     name = "tokopedia"
 
     _product_cache: dict[str, dict] = {}
+
+    async def _get_page(self, headless: bool = True):
+        page = await super()._get_page(headless=headless)
+        if not getattr(self, "_stealth_applied", False):
+            self._stealth_applied = True
+            try:
+                cdp = await self._context.new_cdp_session(page)
+                await cdp.send(
+                    "Network.setUserAgentOverride",
+                    {"userAgent": _chromium_ua()},
+                )
+                stealth = Stealth(
+                    navigator_languages_override=("id-ID", "id", "en-US", "en"),
+                    navigator_vendor_override="Google Inc.",
+                    chrome_runtime=True,
+                    navigator_user_agent=False,
+                )
+                await stealth.apply_stealth_async(page)
+                logger.info("[tokopedia] Stealth mode applied (playwright-stealth)")
+            except Exception as e:
+                logger.warning(f"[tokopedia] Stealth override failed: {e}")
+        return page
 
     async def login_interactive(self) -> bool:
         self._save_on_close = False
@@ -35,6 +73,7 @@ class TokopediaAdapter(BaseMarketplace):
             await asyncio.sleep(3)
             self._save_on_close = True
             await self._save_session()
+            clear_login_alert(self.name)
             logger.success("[tokopedia] Login successful! Session saved.")
             return True
         except Exception:
@@ -70,7 +109,7 @@ class TokopediaAdapter(BaseMarketplace):
 
         if await self._check_login_needed(page):
             logger.error("[tokopedia] Session expired. Run 'login tokopedia' to re-authenticate.")
-            return []
+            raise SessionExpiredError("Tokopedia session expired - login required")
 
         products: list[MarketProduct] = []
 
@@ -299,7 +338,7 @@ class TokopediaAdapter(BaseMarketplace):
         await asyncio.sleep(12)
         if await self._check_login_needed(page):
             logger.error("[tokopedia] Session expired.")
-            return []
+            raise SessionExpiredError("Tokopedia session expired - login required")
 
         orders: list[MarketOrder] = []
         try:
@@ -406,82 +445,481 @@ class TokopediaAdapter(BaseMarketplace):
 
         return orders
 
-    async def download_shipping_label(self, order_id: str, output_dir: Path) -> Path | None:
+    async def is_order_cancelled(self, order_id: str) -> bool | None:
         page = await self._get_page()
-
         try:
-            await page.goto(f"{self.config.seller_center_url}/order", timeout=20000)
-        except Exception:
-            pass
-
-        if await self._check_login_needed(page):
-            logger.error("[tokopedia] Session expired, cannot download label.")
-            return None
-
-        try:
-            result = await page.evaluate(
+            raw = await page.evaluate(
                 """async (args) => {
                     try {
-                        const r = await fetch("/api/fulfillment/order/print-document", {
+                        const r = await fetch("/api/fulfillment/order/list", {
                             method: "POST",
                             headers: {"Content-Type": "application/json"},
                             body: JSON.stringify({
-                                order_id_list: [args.order_id],
-                                document_type: 1,
+                                search_condition: {
+                                    condition_list: {
+                                        search_tab: {value: [args.tab]},
+                                    },
+                                },
+                                sort_info: "11",
+                                page_number: 1,
+                                page_size: 50,
                             }),
                         });
-                        if (!r.ok) {
-                            return {code: -1, message: "HTTP " + r.status};
-                        }
-                        const contentType = r.headers.get("content-type") || "";
-                        if (contentType.includes("application/json")) {
-                            const json = await r.json();
-                            if (json.data && json.data.url) {
-                                const pdfR = await fetch(json.data.url);
-                                const buf = await pdfR.arrayBuffer();
-                                const bytes = new Uint8Array(buf);
-                                let binary = "";
-                                for (let i = 0; i < bytes.byteLength; i++) {
-                                    binary += String.fromCharCode(bytes[i]);
-                                }
-                                return {code: 0, data: btoa(binary)};
+                        const data = await r.json();
+                        if (data.code !== 0) return {code: data.code};
+                        const orders = data.data.main_orders || [];
+                        for (const o of orders) {
+                            if (String(o.main_order_id) === String(args.order_id)) {
+                                return {code: 0, cancelled: true};
                             }
-                            return {code: json.code || -1, message: json.message || "no url"};
                         }
-                        const buf = await r.arrayBuffer();
-                        const bytes = new Uint8Array(buf);
-                        let binary = "";
-                        for (let i = 0; i < bytes.byteLength; i++) {
-                            binary += String.fromCharCode(bytes[i]);
-                        }
-                        return {code: 0, data: btoa(binary)};
+                        return {code: 0, cancelled: false};
                     } catch (e) {
                         return {code: -1, message: e.message};
                     }
                 }""",
-                {"order_id": order_id},
+                {"tab": "701", "order_id": order_id},
             )
-
-            if not result or result.get("code") != 0:
-                msg = result.get("message", "unknown") if result else "no response"
-                logger.warning(f"[tokopedia] Label download failed for {order_id}: {msg}")
+            if raw.get("cancelled") is None:
                 return None
-
-            pdf_b64 = result.get("data", "")
-            if not pdf_b64:
-                logger.warning(f"[tokopedia] No PDF data returned for order {order_id}")
-                return None
-
-            output_dir.mkdir(parents=True, exist_ok=True)
-            filename = f"{date.today().isoformat()}_tokopedia_{order_id}.pdf"
-            filepath = output_dir / filename
-            filepath.write_bytes(__import__("base64").b64decode(pdf_b64))
-            logger.info(f"[tokopedia] Shipping label saved: {filepath}")
-            return filepath
-
+            if raw.get("cancelled"):
+                logger.info(f"[tokopedia] Order {order_id} is cancelled on marketplace")
+                return True
+            return False
         except Exception as e:
-            logger.error(f"[tokopedia] Failed to download label for {order_id}: {e}")
+            logger.warning(f"[tokopedia] Could not check cancellation status for {order_id}: {e}")
             return None
+
+    async def download_shipping_label(
+        self,
+        order_id: str,
+        output_dir: Path,
+        max_retries: int = 3,
+        retry_wait_seconds: float = 180.0,
+        headless: bool = True,
+    ) -> Path | None:
+        """Download a shipping label, resting and retrying when Tokopedia serves
+        its anti-bot puzzle (slide-to-verify).
+
+        The puzzle is transient: waiting a while lets it clear before the next
+        attempt. A genuinely expired session raises ``SessionExpiredError`` and is
+        not retried. Pass ``headless=False`` to watch the browser (useful for
+        debugging why the order rows do not render).
+        """
+        logger.info(f"[tokopedia] Downloading shipping label for order {order_id}")
+        for attempt in range(1, max_retries + 1):
+            try:
+                result = await self._download_shipping_label_once(order_id, output_dir, headless=headless)
+            except SessionExpiredError:
+                logger.error("[tokopedia] Session expired, cannot download label.")
+                raise
+            if result is not None:
+                return result
+            if attempt < max_retries:
+                logger.info(
+                    f"[tokopedia] label download attempt {attempt}/{max_retries} failed for "
+                    f"{order_id}; resting {retry_wait_seconds:.0f}s before retry..."
+                )
+                await asyncio.sleep(retry_wait_seconds)
+        return None
+
+    async def _download_shipping_label_once(
+        self, order_id: str, output_dir: Path, headless: bool = True
+    ) -> Path | None:
+        page = await self._get_page(headless=headless)
+
+        try:
+            await page.goto(
+                f"{self.config.seller_center_url}/order?order_status[]=1&selected_sort=11&tab=to_ship",
+                timeout=20000,
+            )
+        except Exception:
+            pass
+
+        if await self._check_login_needed(page):
+            raise SessionExpiredError("Tokopedia session expired - login required")
+
+        if await self._detect_captcha(page):
+            logger.warning(
+                "[tokopedia] Anti-spam puzzle detected on the order page. "
+                "Waiting before retry so the puzzle can clear."
+            )
+            return None
+
+        pdf_bytes: bytes | None = None
+
+        try:
+            pdf_bytes = await self._download_label_via_ui(page, order_id)
+        except Exception as e:
+            logger.debug(f"[tokopedia] UI label flow failed for {order_id}: {e}")
+
+        if not pdf_bytes:
+            try:
+                pdf_bytes = await self._download_label_via_api(page, order_id)
+            except Exception as e:
+                logger.error(f"[tokopedia] API label flow failed for {order_id}: {e}")
+
+        if not pdf_bytes:
+            logger.warning(f"[tokopedia] Could not obtain a shipping label for order {order_id}")
+            return None
+
+        if not pdf_bytes.startswith(b"%PDF"):
+            logger.warning(
+                f"[tokopedia] Downloaded data is not a valid PDF for {order_id} "
+                f"({len(pdf_bytes)} bytes)."
+            )
+            return None
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        filename = f"{date.today().isoformat()}_tokopedia_{order_id}.pdf"
+        filepath = output_dir / filename
+        filepath.write_bytes(pdf_bytes)
+        logger.info(f"[tokopedia] Shipping label saved ({len(pdf_bytes)} bytes): {filepath}")
+        await self._enqueue_print(filepath, order_id)
+        return filepath
+
+    async def _save_debug_screenshot(self, page: Page, tag: str) -> Path | None:
+        """Save a full-page screenshot under ``logs/debug`` for troubleshooting.
+
+        Also logs the current URL and a snippet of the visible page text so a
+        headless run leaves a usable debug artifact (anti-bot puzzle, login
+        redirect, empty tab, etc.).
+        """
+        try:
+            debug_dir = Path(self._base_dir) / "logs" / "debug"
+            debug_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            path = debug_dir / f"tokopedia_{tag}_{timestamp}.png"
+            await page.screenshot(path=str(path), full_page=True)
+            try:
+                snippet = (await page.evaluate("() => document.body ? document.body.innerText.slice(0, 500) : ''")).replace("\n", " ")
+            except Exception:
+                snippet = ""
+            logger.info(
+                f"[tokopedia] debug screenshot saved: {path} | url={page.url} | text={snippet[:200]!r}"
+            )
+            return path
+        except Exception as e:
+            logger.warning(f"[tokopedia] failed to save debug screenshot: {e}")
+            return None
+
+    @staticmethod
+    async def _detect_captcha(page: Page) -> bool:
+        """Best-effort detection of the Tokopedia anti-spam puzzle."""
+        try:
+            return await page.evaluate(
+                """() => {
+                    const text = (document.body && document.body.innerText) || "";
+                    if (/verifikasi captcha|verify captcha|antispam|puzzle/i.test(text)) return true;
+                    for (const f of document.querySelectorAll("iframe")) {
+                        const src = f.src || "";
+                        if (/captcha|verify/i.test(src)) return true;
+                    }
+                    return false;
+                }"""
+            )
+        except Exception:
+            return False
+
+    async def _download_label_via_ui(self, page: Page, order_id: str) -> bytes | None:
+        """Drive the order table UI: row -> 'Tindakan lainnya' -> 'Cetak dokumen'
+        -> check 'Label pengiriman (A6)' -> 'Cetak' -> capture the PDF popup."""
+        logger.info("[tokopedia] Trying order-table UI label flow...")
+
+        # Wait for the order list rows to render (the list is a lazy SPA).
+        # Anchor on the order id text itself rather than CSS classes -- Tokopedia's
+        # hashed class names match no stable selector.
+        row_found = False
+        for _ in range(10):
+            await page.wait_for_timeout(2000)
+            row_found = await page.evaluate(
+                """(args) => {
+                    const id = args.orderId;
+                    const t = document.body ? (document.body.innerText || "") : "";
+                    return t.includes(id);
+                }""",
+                {"orderId": order_id},
+            )
+            if row_found:
+                break
+
+        if not row_found:
+            diag = await page.evaluate(
+                """(args) => {
+                    const id = args.orderId;
+                    const t = document.body ? (document.body.innerText || "") : "";
+                    return {
+                        orderIdInDom: t.includes(id),
+                        hasTindakan: /Tindakan/i.test(t),
+                        bodyLen: t.length,
+                        url: location.href,
+                        snippet: t.slice(0, 300),
+                    };
+                }""",
+                {"orderId": order_id},
+            )
+            logger.warning(f"[tokopedia] Order ID {order_id} not found in the DOM. Diagnostics: {diag}")
+            await self._save_debug_screenshot(page, f"no_order_rows_{order_id}")
+            return None
+
+        # 1) click "Tindakan lainnya" inside the order row that contains the id.
+        clicked = await page.evaluate(
+            """(args) => {
+                const id = args.orderId;
+                // smallest element containing the order id (its cell in the row)
+                let leaf = null;
+                for (const el of document.querySelectorAll("body *")) {
+                    const t = el.textContent || "";
+                    if (t.includes(id) && (!leaf || t.length < (leaf.textContent || "").length)) leaf = el;
+                }
+                if (!leaf) return false;
+                // walk up from the id to the row that also holds an action button
+                let el = leaf;
+                while (el && el !== document.body) {
+                    const t = el.textContent || "";
+                    if (t.length < 6000) {
+                        const btn = [...el.querySelectorAll("button, [role=button]")].find(b => {
+                            const bt = (b.innerText || b.textContent || "").trim();
+                            return /Tindakan lainnya/i.test(bt) && bt.length < 40;
+                        });
+                        if (btn) { btn.click(); return true; }
+                    }
+                    el = el.parentElement;
+                }
+                return false;
+            }""",
+            {"orderId": order_id},
+        )
+        if not clicked:
+            logger.warning(
+                "[tokopedia] 'Tindakan lainnya' button not found near the order id; the UI may have changed."
+            )
+            await self._save_debug_screenshot(page, f"no_tindakan_button_{order_id}")
+            return None
+        await page.wait_for_timeout(1500)
+
+        # 2) click "Cetak dokumen" in the expanded menu.
+        clicked = await page.evaluate(
+            """() => {
+                const items = [...document.querySelectorAll("button, a, li, [role=menuitem], div")];
+                const el = items.find(b => {
+                    const t = (b.innerText || b.textContent || "").trim();
+                    return /^Cetak dokumen$/i.test(t) || /Cetak dokumen/i.test(t) && t.length < 40;
+                });
+                if (el) { el.click(); return true; }
+                return false;
+            }""",
+        )
+        if not clicked:
+            logger.info("[tokopedia] 'Cetak dokumen' menu item not found.")
+            return None
+        await page.wait_for_timeout(2500)
+
+        # 3) in the modal, check the "Label pengiriman" checkbox.
+        checked = await page.evaluate(
+            """() => {
+                const labels = [...document.querySelectorAll("label, .p-checkbox, [class*=checkbox], div")];
+                const target = labels.find(l => {
+                    const t = (l.innerText || l.textContent || "").trim();
+                    return /Label pengiriman/i.test(t) && t.length < 60;
+                });
+                if (!target) return false;
+                const input = target.querySelector("input[type=checkbox]") || target.closest("label") && target.closest("label").querySelector("input[type=checkbox]");
+                if (input) {
+                    if (!input.checked) input.click();
+                    return true;
+                }
+                target.click();
+                return true;
+            }""",
+        )
+        if not checked:
+            logger.info("[tokopedia] 'Label pengiriman' checkbox not found in modal.")
+            return None
+        await page.wait_for_timeout(1000)
+
+        # 4) capture the PDF the "Cetak" button opens (new window / download).
+        pdf_event = asyncio.Event()
+        pdf_data: dict | None = None
+        ctx = page.context
+
+        async def on_pdf_page(new_page):
+            nonlocal pdf_data
+            try:
+                await new_page.wait_for_load_state("networkidle", timeout=15000)
+            except Exception:
+                pass
+            for attempt in range(15):
+                await asyncio.sleep(2)
+                result = await new_page.evaluate(
+                    """async () => {
+                        for (const f of document.querySelectorAll('iframe')) {
+                            if (f.src && f.src.startsWith('blob:')) {
+                                try {
+                                    const resp = await fetch(f.src);
+                                    const blob = await resp.blob();
+                                    const reader = new FileReader();
+                                    return await new Promise((resolve) => {
+                                        reader.onload = () => resolve({
+                                            size: blob.size,
+                                            b64: reader.result.split(',')[1],
+                                        });
+                                        reader.readAsDataURL(blob);
+                                    });
+                                } catch (e) { return {error: String(e)}; }
+                            }
+                        }
+                        const url = location.href;
+                        if (/\\.pdf($|\\?)/i.test(url)) {
+                            try {
+                                const resp = await fetch(url);
+                                const blob = await resp.blob();
+                                const reader = new FileReader();
+                                return await new Promise((resolve) => {
+                                    reader.onload = () => resolve({size: blob.size, b64: reader.result.split(',')[1]});
+                                    reader.readAsDataURL(blob);
+                                });
+                            } catch (e) { return {error: String(e)}; }
+                        }
+                        return null;
+                    }"""
+                )
+                if result is not None:
+                    pdf_data = result
+                    pdf_event.set()
+                    await new_page.close()
+                    return
+            pdf_data = {"error": "no PDF found in popup after polling"}
+            pdf_event.set()
+
+        ctx.on("page", on_pdf_page)
+        try:
+            clicked = await page.evaluate(
+                """() => {
+                    const modals = [...document.querySelectorAll("[class*=modal], [class*=dialog], [class*=popup], [class*=drawer]")];
+                    const scope = modals[modals.length - 1] || document;
+                    const btns = [...scope.querySelectorAll("button")];
+                    const btn = btns.find(b => /^Cetak$/i.test((b.innerText || b.textContent || "").trim()));
+                    if (btn) { btn.click(); return true; }
+                    return false;
+                }""",
+            )
+            if not clicked:
+                logger.info("[tokopedia] 'Cetak' button not found in modal.")
+                return None
+
+            await asyncio.wait_for(pdf_event.wait(), timeout=45)
+        except TimeoutError:
+            logger.warning("[tokopedia] Timed out waiting for label PDF popup.")
+        finally:
+            ctx.remove_listener("page", on_pdf_page)
+
+        if pdf_data and pdf_data.get("size", 0) > 1000 and pdf_data.get("b64"):
+            return base64.b64decode(pdf_data["b64"])
+        if pdf_data and pdf_data.get("error"):
+            logger.info(f"[tokopedia] Popup capture error: {pdf_data['error']}")
+        return None
+
+    async def _download_label_via_api(self, page: Page, order_id: str) -> bytes | None:
+        """Resolve the order to its fulfill unit(s), then call the same
+        ``shipping_doc/generate`` endpoint the 'Cetak' button uses (A6 label,
+        content type = shipping label) and download the returned PDF URL."""
+        logger.info("[tokopedia] Falling back to shipping_doc/generate API...")
+
+        resolved = await page.evaluate(
+            """async (args) => {
+                const target = String(args.id);
+                for (let page_number = 1; page_number <= 10; page_number++) {
+                    try {
+                        const r = await fetch("/api/fulfillment/order/list", {
+                            method: "POST",
+                            headers: {"Content-Type": "application/json"},
+                            body: JSON.stringify({
+                                search_condition: { condition_list: { search_tab: { value: ["101"] } } },
+                                sort_info: "11",
+                                page_number: page_number,
+                                page_size: 50,
+                            }),
+                        });
+                        const j = await r.json();
+                        if (j.code !== 0) continue;
+                        const orders = (j.data && j.data.main_orders) || [];
+                        if (orders.length === 0) return {error: "order not found"};
+                        for (const o of orders) {
+                            if (String(o.main_order_id) !== target) continue;
+                            const fu = (o.fulfill_unit_id_mapper || [])
+                                .map(m => m.fulfill_unit_id)
+                                .filter(Boolean);
+                            return {fulfill_unit_ids: fu};
+                        }
+                    } catch (e) { return {error: String(e)}; }
+                }
+                return {error: "order not found in the first 10 pages"};
+            }""",
+            {"id": order_id},
+        )
+
+        if not resolved or resolved.get("error") or not resolved.get("fulfill_unit_ids"):
+            logger.warning(
+                f"[tokopedia] Could not resolve order {order_id}: "
+                f"{(resolved or {}).get('error', 'no fulfill unit ids')}"
+            )
+            return None
+
+        fulfill_unit_ids = resolved["fulfill_unit_ids"]
+
+        gen = await page.evaluate(
+            """async (args) => {
+                try {
+                    const r = await fetch("/api/v1/fulfillment/shipping_doc/generate", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({
+                            fulfill_unit_id_list: args.fulfill_unit_ids,
+                            content_type_list: [1],
+                            template_type: 0,
+                            op_scene: 2,
+                            file_prefix: "Shipping label",
+                            request_time: Date.now(),
+                            print_source: 101,
+                            print_option: {tmpl: 0, template_size: 0, layout: [0]},
+                        }),
+                    });
+                    const j = await r.json();
+                    return {code: j.code, message: j.message || j.msg, data: j.data || {}};
+                } catch (e) {
+                    return {code: -2, message: String(e), data: {}};
+                }
+            }""",
+            {"fulfill_unit_ids": fulfill_unit_ids},
+        )
+
+        doc_url = (gen.get("data") or {}).get("doc_url")
+        if gen.get("code") != 0 or not doc_url:
+            logger.warning(f"[tokopedia] shipping_doc/generate failed for {order_id}: {gen.get('message')}")
+            return None
+
+        pdf = await page.evaluate(
+            """async (args) => {
+                try {
+                    const r = await fetch(args.url);
+                    const buf = await r.arrayBuffer();
+                    const bytes = new Uint8Array(buf);
+                    let binary = "";
+                    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+                    return {size: bytes.byteLength, b64: btoa(binary)};
+                } catch (e) {
+                    return {error: String(e)};
+                }
+            }""",
+            {"url": doc_url},
+        )
+
+        if pdf.get("error") or pdf.get("size", 0) < 1000 or not pdf.get("b64"):
+            logger.warning(f"[tokopedia] Failed to fetch PDF for {order_id}: {pdf.get('error', 'empty response')}")
+            return None
+
+        return base64.b64decode(pdf["b64"])
 
     async def create_product(self, product: MarketProduct) -> str | None:
         logger.warning("[tokopedia] create_product not yet implemented")

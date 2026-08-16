@@ -33,6 +33,7 @@ sync:
   whatsapp_enabled: true
   whatsapp_api_url: "http://localhost:8001/send-message"
   whatsapp_phone: "${WHATSAPP_PHONE}"
+  login_alert_cooldown_hours: 6
   min_price: 1000
   max_stock: 99999
   min_stock_floor: 0
@@ -40,6 +41,16 @@ sync:
   stock_change_threshold: 1
   skip_stock_zero: true
   max_retries: 3
+
+print:
+  enabled: true
+  queue_dir: "labels/print_queue"
+  output_dir: "labels/print_ready"
+  dpi: 203
+  print_width_mm: 72
+  printer_name: ""
+  render_thermal: true
+  extra_line_feeds: 1
 
 server:
   host: "127.0.0.1"

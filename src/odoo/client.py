@@ -8,6 +8,13 @@ from loguru import logger
 from src.config import OdooConfig
 
 
+def _normalize_datetime(value: str) -> str:
+    value = value.strip()
+    if len(value) == 10 and value[4] == "-" and value[7] == "-":
+        return f"{value} 00:00:00"
+    return value
+
+
 class OdooClient:
     def __init__(self, config: OdooConfig) -> None:
         self.config = config
@@ -160,7 +167,7 @@ class OdooClient:
         if ref:
             vals["client_order_ref"] = ref
         if date_order:
-            vals["date_order"] = date_order
+            vals["date_order"] = _normalize_datetime(date_order)
         if shipping_partner_id:
             vals["partner_shipping_id"] = shipping_partner_id
         if shipping_note:
@@ -194,14 +201,106 @@ class OdooClient:
         return self._call("res.partner", "create", [vals])
 
     def confirm_sale_order(self, order_id: int) -> bool:
+        try:
+            so_data = self._call(
+                "sale.order", "read",
+                [[order_id], ["date_order"]],
+            )
+            orig_date_order = so_data[0].get("date_order") if so_data else None
+        except Exception:
+            orig_date_order = None
+
         self._call("sale.order", "action_confirm", [[order_id]])
         logger.info(f"Odoo sale.order#{order_id} confirmed — stock.picking will be created")
+
+        if orig_date_order:
+            try:
+                self._call(
+                    "sale.order", "write",
+                    [[order_id], {"date_order": orig_date_order}],
+                )
+            except Exception as e:
+                logger.warning(f"Failed to restore date_order on sale.order#{order_id}: {e}")
+
+        try:
+            date_order = orig_date_order
+            if date_order:
+                scheduled = str(date_order)[:10]
+                picking_ids = self._call(
+                    "stock.picking",
+                    "search",
+                    [[["sale_id", "=", order_id], ["state", "not in", ["done", "cancel"]]]],
+                )
+                if picking_ids:
+                    self._call(
+                        "stock.picking", "write",
+                        [picking_ids, {"scheduled_date": scheduled}],
+                    )
+                    logger.info(
+                        f"Odoo stock.picking#{picking_ids} scheduled_date set to {scheduled}"
+                    )
+        except Exception as e:
+            logger.warning(f"Failed to set picking scheduled_date for sale.order#{order_id}: {e}")
+        return True
+
+    def get_sale_order_date(self, sale_order_id: int) -> str | None:
+        try:
+            data = self._call("sale.order", "read", [[sale_order_id], ["date_order"]])
+            return data[0].get("date_order") if data else None
+        except Exception as e:
+            logger.warning(f"Failed to read date_order for sale.order#{sale_order_id}: {e}")
+            return None
+
+    def validate_delivery_order(self, sale_order_id: int, done_date: str | None = None) -> bool:
+        picking_ids = self._call(
+            "stock.picking",
+            "search",
+            [[["sale_id", "=", sale_order_id], ["state", "not in", ["done", "cancel"]]]],
+        )
+        if not picking_ids:
+            logger.warning(
+                f"sale.order#{sale_order_id} has no pending stock.picking to validate"
+            )
+            return False
+
+        # Re-attempt reservation so pickings whose moves were not reserved at confirm
+        # time (e.g. stock temporarily unavailable) reserve whatever is now available.
+        self._call("stock.picking", "action_confirm", [picking_ids])
+
+        result = self._call("stock.picking", "button_validate", [picking_ids])
+
+        if isinstance(result, dict) and result.get("res_model") == "stock.backorder.confirmation":
+            wizard_id = self._call(
+                "stock.backorder.confirmation",
+                "create",
+                [{"pick_ids": [(6, 0, picking_ids)]}],
+            )
+            self._call("stock.backorder.confirmation", "process", [[wizard_id]])
+
+        if done_date:
+            try:
+                self._call("stock.picking", "write", [[picking_ids], {"date_done": done_date}])
+                move_ids = self._call(
+                    "stock.move",
+                    "search",
+                    [[["picking_id", "in", picking_ids]]],
+                )
+                if move_ids:
+                    self._call("stock.move", "write", [[move_ids], {"date": done_date}])
+            except Exception as e:
+                logger.warning(
+                    f"Failed to set done date {done_date} on stock.picking#{picking_ids}: {e}"
+                )
+
+        logger.info(
+            f"Odoo stock.picking#{picking_ids} validated — stock deducted for sale.order#{sale_order_id}"
+        )
         return True
 
     def create_invoice_from_sale_order(self, sale_order_id: int) -> int | None:
         so_data = self._call(
             "sale.order", "read",
-            [[sale_order_id], ["partner_id", "name", "order_line"]],
+            [[sale_order_id], ["partner_id", "name", "order_line", "date_order"]],
         )
         if not so_data:
             logger.warning(f"sale.order#{sale_order_id} not found")
@@ -209,6 +308,7 @@ class OdooClient:
         so = so_data[0]
         partner_id = so["partner_id"][0]
         so_name = so.get("name", "")
+        date_order = so.get("date_order")
 
         line_data = self._call(
             "sale.order.line", "read",
@@ -231,12 +331,18 @@ class OdooClient:
                 "account_id": product_accounts.get(pid),
             }))
 
-        invoice_id = self._call("account.move", "create", [{
+        vals: dict[str, Any] = {
             "move_type": "out_invoice",
             "partner_id": partner_id,
             "invoice_origin": so_name,
             "invoice_line_ids": invoice_lines,
-        }])
+        }
+        if date_order:
+            invoice_date = str(date_order)[:10]
+            vals["invoice_date"] = invoice_date
+            vals["date"] = invoice_date
+
+        invoice_id = self._call("account.move", "create", [vals])
         self._call("account.move", "action_post", [[invoice_id]])
         logger.info(f"Odoo account.move#{invoice_id} created and posted from sale.order#{sale_order_id}")
         return invoice_id

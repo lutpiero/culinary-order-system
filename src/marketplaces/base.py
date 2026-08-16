@@ -10,6 +10,10 @@ from playwright.async_api import Browser, BrowserContext, async_playwright
 from src.config import MarketplaceConfig
 
 
+class SessionExpiredError(Exception):
+    """Raised by a marketplace adapter when the login session has expired."""
+
+
 @dataclass
 class MarketProduct:
     product_id: str
@@ -63,19 +67,26 @@ class BaseMarketplace(ABC):
         if self._context:
             return self._context
         self._playwright = await async_playwright().start()
+        launch_args = ["--disable-blink-features=AutomationControlled"]
+        if not headless:
+            launch_args.append("--start-maximized")
         self._browser = await self._playwright.chromium.launch(
             headless=headless,
-            args=["--disable-blink-features=AutomationControlled"],
+            args=launch_args,
         )
         session_file = self._session_path()
+        if headless:
+            context_kwargs: dict = {"viewport": None}
+        else:
+            context_kwargs = {"no_viewport": True,"viewport":None}
         if session_file.exists():
             self._context = await self._browser.new_context(
                 storage_state=str(session_file),
-                viewport={"width": 1920, "height": 1080},
+                **context_kwargs,
             )
             logger.info(f"[{self.name}] Loaded existing session from {session_file}")
         else:
-            self._context = await self._browser.new_context(viewport={"width": 1920, "height": 1080})
+            self._context = await self._browser.new_context(**context_kwargs)
             logger.warning(f"[{self.name}] No session file found at {session_file}. Run 'login' first.")
         return self._context
 
@@ -109,6 +120,15 @@ class BaseMarketplace(ABC):
         """Override in subclass to detect login redirects."""
         return False
 
+    async def is_order_cancelled(self, order_id: str) -> bool | None:
+        """Check whether the marketplace reports the order as cancelled.
+
+        Returns ``True`` when cancelled, ``False`` when it is definitely not
+        cancelled, or ``None`` when the status could not be determined.
+        Subclasses override this when a status lookup is available.
+        """
+        return None
+
     @abstractmethod
     async def login_interactive(self) -> bool:
         """Open browser for manual login, save session after."""
@@ -137,3 +157,12 @@ class BaseMarketplace(ABC):
     async def download_shipping_label(self, order_id: str, output_dir: Path) -> Path | None:
         """Download shipping label PDF for an order. Returns file path or None."""
         return None
+
+    async def _enqueue_print(self, filepath: Path, order_id: str) -> None:
+        """Queue a downloaded label for thermal printing (best-effort, non-blocking)."""
+        try:
+            from src.printing import enqueue_label_print
+
+            enqueue_label_print(filepath, self.name, order_id)
+        except Exception as e:
+            logger.warning(f"[{self.name}] Failed to enqueue print for {order_id}: {e}")

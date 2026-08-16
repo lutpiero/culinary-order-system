@@ -39,6 +39,7 @@ class SyncConfig(BaseModel):
     whatsapp_enabled: bool = False
     whatsapp_api_url: str = "http://localhost:8001/send-message"
     whatsapp_phone: str = ""
+    login_alert_cooldown_hours: float = 6.0
     min_price: float = 1000.0
     max_stock: int = 99999
     min_stock_floor: int = 0
@@ -46,6 +47,18 @@ class SyncConfig(BaseModel):
     stock_change_threshold: int = 1
     skip_stock_zero: bool = True
     max_retries: int = 3
+
+
+class PrintConfig(BaseModel):
+    enabled: bool = False
+    queue_dir: str = "labels/print_queue"
+    output_dir: str = "labels/print_ready"
+    dpi: int = 203
+    print_width_mm: float = 100.0
+    printer_name: str = ""
+    render_thermal: bool = True
+    font_path: str = ""
+    extra_line_feeds: int = 1
 
 
 class ServerConfig(BaseModel):
@@ -58,6 +71,7 @@ class AppConfig(BaseModel):
     odoo: OdooConfig = Field(default_factory=OdooConfig)
     marketplaces: dict[str, MarketplaceConfig] = Field(default_factory=dict)
     sync: SyncConfig = Field(default_factory=SyncConfig)
+    print: PrintConfig = Field(default_factory=PrintConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
     base_dir: Path = Field(default_factory=lambda: Path.cwd())
 
@@ -98,6 +112,7 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
         odoo=OdooConfig(**raw.get("odoo", {})),
         marketplaces=marketplaces,
         sync=SyncConfig(**raw.get("sync", {})),
+        print=PrintConfig(**raw.get("print", {})),
         server=ServerConfig(**raw.get("server", {})),
         base_dir=config_path.parent,
     )

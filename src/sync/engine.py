@@ -6,10 +6,11 @@ import time
 from loguru import logger
 
 from src.config import AppConfig
-from src.marketplaces.base import BaseMarketplace
+from src.marketplaces.base import BaseMarketplace, SessionExpiredError
 from src.marketplaces.shopee import ShopeeAdapter
 from src.marketplaces.tokopedia import TokopediaAdapter
 from src.models.database import close_db, log_sync
+from src.notify import notify_login_required
 from src.odoo.client import OdooClient
 from src.sync.order_sync import sync_orders_from_marketplace
 from src.sync.price_sync import sync_price_to_marketplace
@@ -44,6 +45,22 @@ class SyncEngine:
         if tokopedia_config and tokopedia_config.enabled:
             self.marketplaces["tokopedia"] = TokopediaAdapter(tokopedia_config, base_dir)
 
+    def _handle_sync_error(self, name: str, e: Exception) -> None:
+        error_str = str(e).lower()
+        if (
+            isinstance(e, SessionExpiredError)
+            or "login" in error_str
+            or "passport" in error_str
+            or "sso" in error_str
+        ):
+            logger.error(
+                f"[{name}] Session expired: {e}. "
+                f"Run 'login {name}' to re-authenticate."
+            )
+            notify_login_required(name)
+        else:
+            logger.error(f"Failed to sync {name}: {e}")
+
     async def sync_all(self) -> dict[str, dict]:
         self._init_marketplaces()
         results: dict[str, dict] = {}
@@ -53,6 +70,13 @@ class SyncEngine:
             try:
                 logger.info(f"[{name}] Loading marketplace products to populate cache...")
                 await mp.get_products()
+
+                if self.config.sync.orders:
+                    t0 = time.time()
+                    count = await sync_orders_from_marketplace(self.odoo, mp)
+                    elapsed = time.time() - t0
+                    results[name]["orders"] = {"synced": count, "elapsed": round(elapsed, 1)}
+                    await log_sync(name, "orders", "success", count)
 
                 if self.config.sync.stock:
                     t0 = time.time()
@@ -68,15 +92,8 @@ class SyncEngine:
                     results[name]["price"] = {"synced": count, "elapsed": round(elapsed, 1)}
                     await log_sync(name, "price", "success", count)
 
-                if self.config.sync.orders:
-                    t0 = time.time()
-                    count = await sync_orders_from_marketplace(self.odoo, mp)
-                    elapsed = time.time() - t0
-                    results[name]["orders"] = {"synced": count, "elapsed": round(elapsed, 1)}
-                    await log_sync(name, "orders", "success", count)
-
             except Exception as e:
-                logger.error(f"Failed to sync {name}: {e}")
+                self._handle_sync_error(name, e)
                 results[name]["error"] = str(e)
                 await log_sync(name, "full", "failed", details=str(e))
             finally:
@@ -97,7 +114,7 @@ class SyncEngine:
                 results[name] = {"synced": count, "status": "success"}
                 await log_sync(name, "stock", "success", count)
             except Exception as e:
-                logger.error(f"Stock sync failed for {name}: {e}")
+                self._handle_sync_error(name, e)
                 results[name] = {"error": str(e), "status": "failed"}
                 await log_sync(name, "stock", "failed", details=str(e))
             finally:
@@ -117,7 +134,7 @@ class SyncEngine:
                 results[name] = {"synced": count, "status": "success"}
                 await log_sync(name, "price", "success", count)
             except Exception as e:
-                logger.error(f"Price sync failed for {name}: {e}")
+                self._handle_sync_error(name, e)
                 results[name] = {"error": str(e), "status": "failed"}
                 await log_sync(name, "price", "failed", details=str(e))
             finally:
@@ -135,7 +152,7 @@ class SyncEngine:
                 results[name] = {"synced": count, "status": "success"}
                 await log_sync(name, "orders", "success", count)
             except Exception as e:
-                logger.error(f"Order sync failed for {name}: {e}")
+                self._handle_sync_error(name, e)
                 results[name] = {"error": str(e), "status": "failed"}
                 await log_sync(name, "orders", "failed", details=str(e))
             finally:

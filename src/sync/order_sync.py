@@ -4,19 +4,31 @@ import asyncio
 import json
 from datetime import UTC, datetime
 
-import httpx
 from loguru import logger
 
 from src.config import get_config
-from src.marketplaces.base import BaseMarketplace, MarketOrder
+from src.marketplaces.base import BaseMarketplace, MarketOrder, SessionExpiredError
 from src.models.database import get_db, get_order_cache, upsert_order_cache
+from src.notify import notify_login_required, send_whatsapp_message
 from src.odoo.client import OdooClient
 
 
 async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarketplace) -> int:
     logger.info(f"[{marketplace.name}] Starting order sync: marketplace -> Odoo")
 
-    orders = await marketplace.get_orders(status="new")
+    try:
+        orders = await marketplace.get_orders(status="new")
+    except SessionExpiredError as e:
+        logger.error(
+            f"[{marketplace.name}] Session expired: {e}. "
+            f"Run 'login {marketplace.name}' to re-authenticate."
+        )
+        notify_login_required(marketplace.name)
+        return 0
+    except Exception as e:
+        logger.error(f"[{marketplace.name}] Failed to fetch orders: {e}")
+        return 0
+
     if not orders:
         logger.info(f"[{marketplace.name}] No new orders found.")
         return 0
@@ -24,7 +36,7 @@ async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarket
     synced = 0
     for order in orders:
         existing = await get_order_cache(marketplace.name, order.order_id)
-        if existing:
+        if existing and existing[0]["status"] == "imported":
             logger.debug(f"[{marketplace.name}] Order {order.order_id} already imported, skipping.")
             continue
 
@@ -60,12 +72,12 @@ async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarket
                     odoo.confirm_sale_order(odoo_order_id)
                     logger.info(
                         f"[{marketplace.name}] Order {order.order_id} confirmed — "
-                        "stock.picking created"
+                        "delivery created (stock reserved; validated after pickup)"
                     )
                 except Exception as e:
                     logger.error(
                         f"[{marketplace.name}] Failed to confirm order {order.order_id}: {e}. "
-                        "Order created as draft — stock NOT deducted."
+                        "Order left as draft — stock NOT deducted."
                     )
 
                 try:
@@ -120,11 +132,17 @@ async def sync_orders_from_marketplace(odoo: OdooClient, marketplace: BaseMarket
 
         except Exception as e:
             error_str = str(e).lower()
-            if "login" in error_str or "passport" in error_str or "sso" in error_str:
+            if (
+                isinstance(e, SessionExpiredError)
+                or "login" in error_str
+                or "passport" in error_str
+                or "sso" in error_str
+            ):
                 logger.error(
                     f"[{marketplace.name}] Session expired! Aborting order sync. "
                     f"Run 'login {marketplace.name}' to re-authenticate."
                 )
+                notify_login_required(marketplace.name)
                 break
             logger.error(f"[{marketplace.name}] Failed to import order {order.order_id}: {e}")
             await upsert_order_cache(
@@ -221,11 +239,10 @@ async def _create_odoo_order(odoo: OdooClient, marketplace_name: str, order: Mar
 
 def _parse_order_date(marketplace_name: str, order: MarketOrder) -> str | None:
     try:
-        if marketplace_name == "tokopedia":
-            ts = order.created_at
-            if ts and ts.isdigit():
-                return datetime.fromtimestamp(int(ts), tz=UTC).strftime("%Y-%m-%d")
-        elif marketplace_name == "shopee":
+        ts = order.created_at
+        if ts and ts.isdigit():
+            return datetime.fromtimestamp(int(ts), tz=UTC).strftime("%Y-%m-%d")
+        if marketplace_name == "shopee":
             sn = ""
             polo = order.raw.get("package_level_order_card")
             oc = order.raw.get("order_card")
@@ -409,20 +426,9 @@ def _send_whatsapp_notification(
     sale_order_name: str,
     invoice_name: str,
 ) -> None:
-    cfg = get_config()
-    if not cfg.sync.whatsapp_enabled:
+    if not get_config().sync.whatsapp_enabled:
         return
 
-    try:
-        message = _format_whatsapp_message(marketplace_name, order, sale_order_name, invoice_name)
-
-        resp = httpx.post(
-            cfg.sync.whatsapp_api_url,
-            json={"recipient": cfg.sync.whatsapp_phone, "message": message},
-            timeout=10.0,
-        )
-        resp.raise_for_status()
+    message = _format_whatsapp_message(marketplace_name, order, sale_order_name, invoice_name)
+    if send_whatsapp_message(message):
         logger.info(f"[{marketplace_name}] WhatsApp notification sent for order {order.order_id}")
-
-    except Exception as e:
-        logger.error(f"[{marketplace_name}] Failed to send WhatsApp for order {order.order_id}: {e}")

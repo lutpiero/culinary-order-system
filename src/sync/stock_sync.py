@@ -5,8 +5,9 @@ import asyncio
 from loguru import logger
 
 from src.config import get_config
-from src.marketplaces.base import BaseMarketplace
+from src.marketplaces.base import BaseMarketplace, SessionExpiredError
 from src.models.database import get_db
+from src.notify import notify_login_required
 from src.odoo.client import OdooClient
 
 
@@ -86,11 +87,17 @@ async def sync_stock_to_marketplace(odoo: OdooClient, marketplace: BaseMarketpla
         except Exception as e:
             failed += 1
             error_str = str(e).lower()
-            if "login" in error_str or "passport" in error_str or "sso" in error_str:
+            if (
+                isinstance(e, SessionExpiredError)
+                or "login" in error_str
+                or "passport" in error_str
+                or "sso" in error_str
+            ):
                 logger.error(
                     f"[{marketplace.name}] Session expired! Aborting entire stock sync batch. "
-                    "Run 'login {marketplace.name}' to re-authenticate."
+                    f"Run 'login {marketplace.name}' to re-authenticate."
                 )
+                notify_login_required(marketplace.name)
                 break
             logger.error(f"[{marketplace.name}] Error syncing stock for Odoo#{odoo_pid}: {e}")
 
