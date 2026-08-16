@@ -107,6 +107,9 @@ data class BusinessSettingsDto(
         "BANK_TRANSFER" to true,
         "CASHIER" to true
     ),
+    val businessLatitude: Double? = null,
+    val businessLongitude: Double? = null,
+    val orderRadiusMeters: Int? = null,
     val updatedAt: Timestamp = Timestamp.now(),
     val updatedBy: String = ""
 ) {
@@ -121,6 +124,9 @@ data class BusinessSettingsDto(
         serviceChargePercentage = serviceChargePercentage,
         logoUrl = logoUrl,
         paymentMethods = paymentMethods,
+        businessLatitude = businessLatitude,
+        businessLongitude = businessLongitude,
+        orderRadiusMeters = orderRadiusMeters,
         updatedAt = updatedAt.toDate(),
         updatedBy = updatedBy
     )
@@ -137,6 +143,9 @@ data class BusinessSettingsDto(
             serviceChargePercentage = settings.serviceChargePercentage,
             logoUrl = settings.logoUrl,
             paymentMethods = settings.paymentMethods,
+            businessLatitude = settings.businessLatitude,
+            businessLongitude = settings.businessLongitude,
+            orderRadiusMeters = settings.orderRadiusMeters,
             updatedAt = Timestamp(settings.updatedAt),
             updatedBy = settings.updatedBy
         )

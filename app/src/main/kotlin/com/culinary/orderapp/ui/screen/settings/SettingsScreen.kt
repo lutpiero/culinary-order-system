@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.*
@@ -42,11 +43,26 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showLocationPicker by remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { viewModel.uploadBusinessIcon(it) }
+    }
+
+    if (showLocationPicker) {
+        LocationPickerScreen(
+            initialLatitude = uiState.businessLatitude,
+            initialLongitude = uiState.businessLongitude,
+            initialRadiusMeters = uiState.orderRadiusMeters.toIntOrNull(),
+            onLocationPicked = { lat, lng ->
+                viewModel.updateBusinessLocation(lat, lng)
+                showLocationPicker = false
+            },
+            onBack = { showLocationPicker = false }
+        )
+        return
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -171,6 +187,57 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 3,
+                        enabled = !uiState.isSaving
+                    )
+                }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Lokasi & Radius Pesanan",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "Pelanggan hanya dapat memesan jika berada dalam radius ini dari lokasi bisnis.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    val hasLocation =
+                        uiState.businessLatitude != null && uiState.businessLongitude != null
+                    OutlinedButton(
+                        onClick = { showLocationPicker = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isSaving
+                    ) {
+                        Icon(Icons.Default.Place, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (hasLocation) "Ubah Lokasi di Peta" else "Pilih Lokasi di Peta")
+                    }
+                    if (hasLocation) {
+                        Text(
+                            text = String.format(
+                                "%.6f, %.6f",
+                                uiState.businessLatitude,
+                                uiState.businessLongitude
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = uiState.orderRadiusMeters,
+                        onValueChange = viewModel::updateOrderRadiusMeters,
+                        label = { Text("Radius Pesanan (meter)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         enabled = !uiState.isSaving
                     )
                 }

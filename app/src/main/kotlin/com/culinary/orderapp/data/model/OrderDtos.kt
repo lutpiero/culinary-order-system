@@ -3,6 +3,7 @@ package com.culinary.orderapp.data.model
 import com.culinary.orderapp.domain.model.Order
 import com.culinary.orderapp.domain.model.OrderItem
 import com.culinary.orderapp.domain.model.OrderStatus
+import com.culinary.orderapp.domain.model.OrderType
 import com.culinary.orderapp.domain.model.PaymentMethod
 import com.culinary.orderapp.domain.model.PaymentStatus
 import com.culinary.orderapp.domain.model.SelectedTopping
@@ -81,6 +82,7 @@ data class OrderDto(
     val customerName: String = "",
     val items: List<OrderItemDto> = emptyList(),
     val status: String = OrderStatus.PENDING.name,
+    val orderType: String = OrderType.DINE_IN.name,
     val paymentMethod: String = PaymentMethod.CASHIER.name,
     val paymentStatus: String = PaymentStatus.PENDING.name,  // For tracking QRIS/online payments
     val paymentRefNo: String = "",  // Reference number for QRIS payment
@@ -100,6 +102,7 @@ data class OrderDto(
         customerName = customerName,
         items = items.map { it.toDomain() },
         status = runCatching { OrderStatus.valueOf(status) }.getOrDefault(OrderStatus.PENDING),
+        orderType = runCatching { OrderType.valueOf(orderType) }.getOrDefault(OrderType.DINE_IN),
         paymentMethod = runCatching { PaymentMethod.valueOf(paymentMethod) }.getOrDefault(PaymentMethod.CASHIER),
         paymentStatus = runCatching { PaymentStatus.valueOf(paymentStatus) }.getOrDefault(PaymentStatus.PENDING),
         paymentRefNo = paymentRefNo,
@@ -121,6 +124,7 @@ data class OrderDto(
             customerName = order.customerName,
             items = order.items.map { OrderItemDto.fromDomain(it) },
             status = order.status.name,
+            orderType = order.orderType.name,
             paymentMethod = order.paymentMethod.name,
             paymentStatus = order.paymentStatus.name,
             paymentRefNo = order.paymentRefNo,

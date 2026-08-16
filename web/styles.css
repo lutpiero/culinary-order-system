@@ -381,6 +381,84 @@ body {
 .topping-item-label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .topping-item-price { font-size: 13px; color: var(--primary); font-weight: 600; }
 
+/* ---------- Order Type Chooser ---------- */
+.order-type-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.order-type-icon { font-size: 44px; margin-bottom: 8px; }
+.order-type-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.order-type-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.order-type-status {
+  font-size: 14px;
+  color: var(--primary);
+  font-weight: 600;
+  background: #FFF3EE;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  width: 100%;
+  margin-bottom: 4px;
+}
+.order-type-distance { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.order-type-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+}
+.order-type-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+.order-type-btn:hover:not(:disabled) { border-color: var(--primary-light); }
+.order-type-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  background: var(--surface-2);
+}
+.order-type-btn-icon { font-size: 26px; }
+.order-type-retry {
+  margin-top: 14px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ---------- Location / Radius Warning Banner ---------- */
+.location-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FDE9E7;
+  color: #B3261E;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
 .modal-notes { margin-bottom: 16px; }
 .modal-qty-row {
   display: flex;

@@ -58,6 +58,9 @@
 
     <!-- Menu content -->
     <div id="menuContent" style="display:none">
+      <!-- Location/radius warning banner -->
+      <div id="locationWarning" class="location-warning" style="display:none"></div>
+
       <!-- Category tabs -->
       <div class="category-tabs-wrapper">
         <div class="category-tabs" id="categoryTabs" role="tablist"></div>
@@ -67,6 +70,30 @@
       <div class="menu-grid" id="menuGrid"></div>
     </div>
   </main>
+
+  <!-- ========== ORDER TYPE CHOOSER MODAL ========== -->
+  <div class="modal-overlay" id="orderTypeModal" style="display:none" role="dialog" aria-modal="true">
+    <div class="modal-content order-type-modal">
+      <div class="order-type-icon">🍽️</div>
+      <h2 class="order-type-title">Bagaimana Anda ingin memesan?</h2>
+      <p class="order-type-subtitle">Pilih sebelum melihat menu</p>
+      <div id="orderTypeStatus" class="order-type-status">Menentukan lokasi Anda...</div>
+      <div id="orderTypeDistance" class="order-type-distance"></div>
+      <div class="order-type-options">
+        <button class="order-type-btn" id="orderTypeDineIn" onclick="chooseOrderType('DINE_IN')" disabled>
+          <span class="order-type-btn-icon">🪑</span>
+          <span class="order-type-btn-label">Makan di Tempat</span>
+        </button>
+        <button class="order-type-btn" id="orderTypeTakeAway" onclick="chooseOrderType('TAKE_AWAY')" disabled>
+          <span class="order-type-btn-icon">🛍️</span>
+          <span class="order-type-btn-label">Dibawa Pulang</span>
+        </button>
+      </div>
+      <button class="order-type-retry" id="orderTypeRetryBtn" onclick="retryLocation()" style="display:none">
+        🔄 Coba Lagi Izin Lokasi
+      </button>
+    </div>
+  </div>
 
   <!-- ========== CART DRAWER ========== -->
   <div class="overlay" id="overlay" onclick="closeCart(); closeOrderHistory();" style="display:none"></div>

@@ -113,6 +113,8 @@ service cloud.firestore {
           // Orders must always be created as PENDING — a client can never
           // create itself as already PAID/IN_QUEUE/etc.
           && data.status == "PENDING"
+          // Order type is chosen by the customer before browsing the menu.
+          && data.orderType in ["DINE_IN", "TAKE_AWAY"]
           && data.paymentMethod in ["QRIS", "BANK_TRANSFER", "CASHIER"]
           && data.paymentStatus == "PENDING"
           && isValidQrisFields(data);

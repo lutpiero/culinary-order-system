@@ -196,6 +196,11 @@ fun OrderCard(order: Order, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.secondary
                 )
                 Text(
+                    text = order.orderType.displayName,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Text(
                     text = timeFormat.format(order.createdAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

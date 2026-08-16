@@ -134,6 +134,9 @@ dependencies {
     // Google Sign-In
     implementation(libs.play.services.auth)
 
+    // OpenStreetMap (osmdroid) for the business location picker — no API key, no billing
+    implementation(libs.osmdroid.android)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)

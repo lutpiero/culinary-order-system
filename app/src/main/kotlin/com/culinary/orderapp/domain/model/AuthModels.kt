@@ -124,6 +124,13 @@ data class BusinessSettings(
         "BANK_TRANSFER" to true,
         "CASHIER" to true
     ),
+    // Business location (from the seller's map picker) used by the customer
+    // web app to enforce the order radius.
+    val businessLatitude: Double? = null,
+    val businessLongitude: Double? = null,
+    // Maximum distance (in meters) a customer may be from the business to
+    // place an order. Orders are blocked when the customer is outside it.
+    val orderRadiusMeters: Int? = null,
     val updatedAt: Date = Date(),
     val updatedBy: String = ""
 )

@@ -40,7 +40,14 @@ const state = {
   qrisPollingTimer: null,  // Timer for payment status polling
   qrisCountdownTimer: null,  // Timer for the 5-minute amount-lock countdown
   currentPaymentOrderId: null,  // Store current order ID for payment tracking
-  paymentMethodsEnabled: { QRIS: true, BANK_TRANSFER: true, CASHIER: true }  // Loaded from settings
+  paymentMethodsEnabled: { QRIS: true, BANK_TRANSFER: true, CASHIER: true },  // Loaded from settings
+  // Order type + location gating
+  orderType: null,           // "DINE_IN" | "TAKE_AWAY" — chosen before the menu
+  businessLocation: null,    // { latitude, longitude } — from settings
+  orderRadiusMeters: null,   // max allowed distance in meters — from settings
+  customerLocation: null,    // { latitude, longitude } — browser geolocation
+  customerDistanceMeters: null,
+  locationStatus: "unknown"  // "unknown" | "granted" | "denied"
 };
 
 // ---------------------------------------------------------------------------
@@ -50,6 +57,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   parseTableFromUrl();
   await initFirebase();
   await loadSettings();
+  showOrderTypeChooser();
   await loadMenu();
   await loadOrderHistory();
 });
@@ -154,10 +162,240 @@ async function loadSettings() {
           CASHIER:       pm.CASHIER !== false
         };
       }
+
+      // Business location + order radius (set by the seller app). When both
+      // are present, customers must be within the radius to place an order.
+      const bizLat  = data.businessLatitude  ?? data.business_latitude  ?? null;
+      const bizLng  = data.businessLongitude ?? data.business_longitude ?? null;
+      if (bizLat != null && bizLng != null) {
+        state.businessLocation = { latitude: Number(bizLat), longitude: Number(bizLng) };
+      }
+      const radius = data.orderRadiusMeters ?? data.order_radius_meters ?? null;
+      if (radius != null) {
+        state.orderRadiusMeters = Number(radius);
+      }
     }
   } catch (err) {
     console.error("loadSettings error:", err);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Order type chooser + location/radius gating
+//
+// On first visit (per table+session) the customer picks DINE_IN or TAKE_AWAY
+// before the menu is shown. The browser is asked for location permission so
+// the order radius configured by the seller can be enforced: when the
+// customer is outside the radius (or location is unavailable) no order can
+// be placed.
+// ---------------------------------------------------------------------------
+
+function orderTypeKey() {
+  return `culinary_order_type_${state.tableNumber}_${state.sessionId}`;
+}
+
+function showOrderTypeChooser() {
+  const saved = sessionStorage.getItem(orderTypeKey());
+  if (saved === "DINE_IN" || saved === "TAKE_AWAY") {
+    state.orderType = saved;
+  } else {
+    const modal = document.getElementById("orderTypeModal");
+    if (modal) {
+      modal.style.display = "flex";
+      document.body.style.overflow = "hidden";
+    }
+  }
+  requestCustomerLocation();
+}
+
+function requestCustomerLocation() {
+  const statusEl = document.getElementById("orderTypeStatus");
+  const retryBtn = document.getElementById("orderTypeRetryBtn");
+
+  if (!navigator.geolocation) {
+    state.locationStatus = "denied";
+    if (statusEl) statusEl.textContent = "Browser tidak mendukung izin lokasi. Tidak dapat memesan.";
+    if (retryBtn) retryBtn.style.display = "none";
+    disableOrderTypeButtons(true);
+    updateLocationBanner();
+    return;
+  }
+
+  state.locationStatus = "unknown";
+  if (statusEl) statusEl.textContent = "Meminta izin lokasi...";
+  if (retryBtn) retryBtn.style.display = "none";
+  const distEl = document.getElementById("orderTypeDistance");
+  if (distEl) distEl.textContent = "";
+  disableOrderTypeButtons(true);
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      state.customerLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      };
+      state.locationStatus = "granted";
+      resolveLocationAndEnable();
+    },
+    (err) => {
+      state.locationStatus = "denied";
+      state.customerLocation = null;
+      state.customerDistanceMeters = null;
+      if (statusEl) {
+        statusEl.textContent = "Izin lokasi diperlukan untuk memesan. Aktifkan izin lokasi di browser, lalu coba lagi.";
+      }
+      if (retryBtn) retryBtn.style.display = "inline-block";
+      disableOrderTypeButtons(true);
+      updateLocationBanner();
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+function resolveLocationAndEnable() {
+  const statusEl = document.getElementById("orderTypeStatus");
+  const distEl = document.getElementById("orderTypeDistance");
+  const retryBtn = document.getElementById("orderTypeRetryBtn");
+  if (retryBtn) retryBtn.style.display = "none";
+
+  const business = state.businessLocation;
+  const radius = state.orderRadiusMeters;
+
+  if (!business || !radius || radius <= 0) {
+    // No radius configured yet — location gating disabled, allow ordering.
+    if (statusEl) statusEl.textContent = "Pilih cara pemesanan:";
+    if (distEl) distEl.textContent = "";
+    disableOrderTypeButtons(false);
+    updateLocationBanner();
+    return;
+  }
+
+  const dist = haversineMeters(
+    state.customerLocation.latitude, state.customerLocation.longitude,
+    business.latitude, business.longitude
+  );
+  state.customerDistanceMeters = dist;
+
+  if (statusEl) statusEl.textContent = "Lokasi Anda dalam area pesanan ✓";
+  if (distEl) {
+    distEl.textContent = `Jarak: ${formatDistance(dist)} · Radius: ${formatDistance(radius)}`;
+  }
+
+  if (dist > radius) {
+    if (statusEl) statusEl.textContent = "Lokasi Anda di luar area pesanan. Tidak dapat memesan.";
+    disableOrderTypeButtons(true);
+  } else {
+    disableOrderTypeButtons(false);
+  }
+  updateLocationBanner();
+}
+
+function chooseOrderType(type) {
+  const business = state.businessLocation;
+  const radius = state.orderRadiusMeters;
+
+  if (business && radius && radius > 0) {
+    if (state.locationStatus !== "granted" || !state.customerLocation) {
+      alert("Izin lokasi diperlukan untuk memesan. Aktifkan izin lokasi lalu muat ulang halaman.");
+      return;
+    }
+    const dist = haversineMeters(
+      state.customerLocation.latitude, state.customerLocation.longitude,
+      business.latitude, business.longitude
+    );
+    state.customerDistanceMeters = dist;
+    if (dist > radius) {
+      alert(`Lokasi Anda (${formatDistance(dist)}) di luar radius pesanan (${formatDistance(radius)}). Tidak dapat memesan.`);
+      return;
+    }
+  }
+
+  state.orderType = type;
+  sessionStorage.setItem(orderTypeKey(), type);
+  const modal = document.getElementById("orderTypeModal");
+  if (modal) {
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+  }
+}
+
+function retryLocation() {
+  state.customerLocation = null;
+  state.customerDistanceMeters = null;
+  state.locationStatus = "unknown";
+  requestCustomerLocation();
+}
+
+function disableOrderTypeButtons(disabled) {
+  document.querySelectorAll(".order-type-btn").forEach(btn => {
+    btn.disabled = disabled;
+  });
+}
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function formatDistance(meters) {
+  if (meters >= 1000) {
+    const km = (meters / 1000).toFixed(1).replace(/\.0$/, "");
+    return `${km} km`;
+  }
+  return `${Math.round(meters)} m`;
+}
+
+function updateLocationBanner() {
+  const banner = document.getElementById("locationWarning");
+  if (!banner) return;
+
+  const business = state.businessLocation;
+  const radius = state.orderRadiusMeters;
+  let message = "";
+
+  if (business && radius && radius > 0) {
+    if (state.locationStatus !== "granted") {
+      message = "Izin lokasi diperlukan untuk memesan. Aktifkan izin lokasi lalu muat ulang halaman.";
+    } else if (state.customerDistanceMeters > radius) {
+      message = `Lokasi Anda di luar radius pesanan (${formatDistance(state.customerDistanceMeters)} > ${formatDistance(radius)}). Tidak dapat memesan.`;
+    }
+  }
+
+  banner.textContent = message;
+  banner.style.display = message ? "flex" : "none";
+}
+
+// Returns { ok, message }. Blocks ordering when the customer is outside the
+// configured radius or when their location cannot be verified.
+function verifyRadiusForOrder() {
+  const business = state.businessLocation;
+  const radius = state.orderRadiusMeters;
+  if (!business || !radius || radius <= 0) return { ok: true };
+
+  if (state.locationStatus !== "granted" || !state.customerLocation) {
+    return {
+      ok: false,
+      message: "Izin lokasi diperlukan untuk memesan. Aktifkan izin lokasi lalu muat ulang halaman."
+    };
+  }
+
+  const dist = haversineMeters(
+    state.customerLocation.latitude, state.customerLocation.longitude,
+    business.latitude, business.longitude
+  );
+  state.customerDistanceMeters = dist;
+  if (dist > radius) {
+    return {
+      ok: false,
+      message: `Lokasi Anda (${formatDistance(dist)}) di luar radius pesanan (${formatDistance(radius)}). Tidak dapat memesan.`
+    };
+  }
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -803,6 +1041,16 @@ async function placeOrder() {
     return;
   }
 
+  // Enforce the business order radius before allowing any order.
+  const radiusCheck = verifyRadiusForOrder();
+  if (!radiusCheck.ok) {
+    btn.disabled = false;
+    btn.textContent = "Pesan Sekarang";
+    alert(radiusCheck.message);
+    updateLocationBanner();
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = "Memproses...";
 
@@ -833,6 +1081,7 @@ async function placeOrder() {
       customerName:  customerName,
       items:         orderItems,
       status:        "PENDING",
+      orderType:     state.orderType || "DINE_IN",
       paymentMethod: paymentMethod,
       paymentStatus: "PENDING",
       notes:         notes,
@@ -1017,10 +1266,15 @@ function showSuccess(orderId, tableNumber, paymentMethod, qrisAmount, paymentLoc
     BANK_TRANSFER: "Transfer Bank",
     CASHIER: "Bayar di Kasir"
   };
+  const orderTypeLabels = {
+    DINE_IN: "Makan di Tempat",
+    TAKE_AWAY: "Dibawa Pulang"
+  };
 
   document.getElementById("successOrderInfo").innerHTML = `
     <div class="order-info-row"><span>No. Pesanan</span><strong>#${escHtml(orderId.slice(-6).toUpperCase())}</strong></div>
     <div class="order-info-row"><span>Meja</span><strong>${escHtml(String(tableNumber))}</strong></div>
+    <div class="order-info-row"><span>Tipe</span><strong>${escHtml(orderTypeLabels[state.orderType] || "Makan di Tempat")}</strong></div>
     <div class="order-info-row"><span>Pembayaran</span><strong>${escHtml(paymentLabels[paymentMethod] || paymentMethod)}</strong></div>
   `;
 

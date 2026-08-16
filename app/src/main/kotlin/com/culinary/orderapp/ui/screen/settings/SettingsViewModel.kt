@@ -30,6 +30,9 @@ data class SettingsUiState(
     val qrisEnabled: Boolean = true,
     val bankTransferEnabled: Boolean = true,
     val cashierEnabled: Boolean = true,
+    val businessLatitude: Double? = null,
+    val businessLongitude: Double? = null,
+    val orderRadiusMeters: String = "",
     val isUploadingLogo: Boolean = false,
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
@@ -69,6 +72,9 @@ class SettingsViewModel @Inject constructor(
                         qrisEnabled = settings.paymentMethods["QRIS"] ?: true,
                         bankTransferEnabled = settings.paymentMethods["BANK_TRANSFER"] ?: true,
                         cashierEnabled = settings.paymentMethods["CASHIER"] ?: true,
+                        businessLatitude = settings.businessLatitude,
+                        businessLongitude = settings.businessLongitude,
+                        orderRadiusMeters = settings.orderRadiusMeters?.toString() ?: "",
                         isLoading = false
                     )
                 } else {
@@ -88,6 +94,10 @@ class SettingsViewModel @Inject constructor(
     fun updateQrisEnabled(value: Boolean) { _uiState.value = _uiState.value.copy(qrisEnabled = value) }
     fun updateBankTransferEnabled(value: Boolean) { _uiState.value = _uiState.value.copy(bankTransferEnabled = value) }
     fun updateCashierEnabled(value: Boolean) { _uiState.value = _uiState.value.copy(cashierEnabled = value) }
+    fun updateBusinessLocation(latitude: Double, longitude: Double) {
+        _uiState.value = _uiState.value.copy(businessLatitude = latitude, businessLongitude = longitude)
+    }
+    fun updateOrderRadiusMeters(value: String) { _uiState.value = _uiState.value.copy(orderRadiusMeters = value) }
     fun clearMessage() { _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null) }
 
     fun uploadBusinessIcon(uri: Uri) {
@@ -138,6 +148,9 @@ class SettingsViewModel @Inject constructor(
                         "BANK_TRANSFER" to _uiState.value.bankTransferEnabled,
                         "CASHIER" to _uiState.value.cashierEnabled
                     ),
+                    businessLatitude = _uiState.value.businessLatitude,
+                    businessLongitude = _uiState.value.businessLongitude,
+                    orderRadiusMeters = _uiState.value.orderRadiusMeters.toIntOrNull(),
                     updatedAt = Date(),
                     updatedBy = currentUser?.id ?: ""
                 )

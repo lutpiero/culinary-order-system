@@ -13,6 +13,15 @@ enum class PaymentMethod(val displayName: String) {
 }
 
 /**
+ * How the customer wants their order fulfilled. Chosen on the web app
+ * before browsing; stored on every order so the seller knows how to serve it.
+ */
+enum class OrderType(val displayName: String) {
+    DINE_IN("Makan di Tempat"),
+    TAKE_AWAY("Dibawa Pulang")
+}
+
+/**
  * Status of an order, progressing through its lifecycle.
  */
 enum class OrderStatus(val displayName: String) {
@@ -74,6 +83,7 @@ data class Order(
      val customerName: String = "",
      val items: List<OrderItem> = emptyList(),
      val status: OrderStatus = OrderStatus.PENDING,
+     val orderType: OrderType = OrderType.DINE_IN,
      val paymentMethod: PaymentMethod = PaymentMethod.CASHIER,
      val paymentStatus: PaymentStatus = PaymentStatus.PENDING,  // For tracking QRIS/online payments
      val paymentRefNo: String = "",  // Reference number for QRIS payment

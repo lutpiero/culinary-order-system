@@ -149,6 +149,11 @@ fun OrderDetailScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
 
+                    Text(
+                        text = "Tipe Pesanan: ${order.orderType.displayName}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
                     if (order.paymentMethod != com.culinary.orderapp.domain.model.PaymentMethod.QRIS) {
                         OrderPaymentStatus(status = order.paymentStatus)
                     }
